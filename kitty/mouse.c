@@ -1439,7 +1439,8 @@ mouse_event(const int button, int modifiers, int action) {
         mouse_cursor_shape = POINTER_POINTER;
         handle_tab_bar_mouse(button, modifiers, action);
         debug("handled by tab bar\n");
-    } else if (r.in_side_nav) {
+    } else if (r.in_side_nav && !global_state.window_being_dragged.id) {
+        // A window title bar drag must see its release even over the side nav
         mouse_cursor_shape = POINTER_POINTER;
         handle_side_nav_mouse(button, modifiers, action);
         debug("handled by side nav\n");

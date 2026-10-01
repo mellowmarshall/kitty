@@ -2152,14 +2152,6 @@ class Window:
         return self.get_cwd_of_child()
 
     @property
-    def side_nav_cwd(self) -> str:
-        # The shell's last reported cwd follows cd at once and costs nothing,
-        # /proc is the fallback for shells without shell integration.
-        if self.screen.last_reported_cwd and not self.child_is_remote:
-            return path_from_osc7_url(self.screen.last_reported_cwd) or ''
-        return self.get_cwd_of_child() or ''
-
-    @property
     def root_in_foreground_processes(self) -> bool:
         q = self.child.pid
         for p in self.child.foreground_processes:

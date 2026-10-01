@@ -790,6 +790,9 @@ vertical_tab_bar_cols(const OSWindow *os_window, long base_width, long margin_ou
     long available_width = base_width - margin_outer - margin_inner;
     if (available_width <= 0) return 0;
     unsigned available_cols = MAX(1u, (unsigned)available_width / cell_width);
+    // When the side nav also takes width, keep half of what is left (up to 20
+    // columns) for the terminal, so the two sidebars cannot squeeze it to nothing.
+    if (base_width < (long)os_window->viewport_width) available_cols = MAX(1u, available_cols - MIN(20u, available_cols / 2u));
     unsigned title_cols = OPT(tab_title_max_length) > 0 ? (unsigned)OPT(tab_title_max_length) : 20u;
     unsigned desired_cols = title_cols + 8u;
     unsigned soft_max = available_cols / 3u;

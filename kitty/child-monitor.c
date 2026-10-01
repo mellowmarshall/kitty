@@ -1009,7 +1009,8 @@ thumbnail_callback(OSWindow *os_window) {
         if (!tc.include_tab_bar) {
             Region central = {0}, tab_bar = {0};
             os_window_regions(os_window, &central, &tab_bar);
-            if (tab_bar.bottom > tab_bar.top) region = central;
+            // central excludes the side nav as well as the tab bar
+            if (tab_bar.bottom > tab_bar.top || (long)(central.right - central.left) < (long)os_window->viewport_width) region = central;
         }
     }
     unsigned vw = region.right - region.left, vh = region.bottom - region.top;

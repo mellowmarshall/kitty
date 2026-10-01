@@ -15,7 +15,7 @@ from gettext import gettext as _
 from typing import Any, Concatenate, Deque, Literal, NamedTuple, Optional, ParamSpec, TypeVar, cast
 
 from .borders import Border, Borders
-from .child import Child
+from .child import Child, cached_process_data
 from .cli_stub import CLIOptions, SaveAsSessionOptions
 from .constants import appname
 from .fast_data_types import (
@@ -66,12 +66,13 @@ from .side_nav_repo import RepoCache
 from .tab_bar import TabBar, TabBarData, WindowDropTarget, apply_title_template
 from .types import DockSpec, ac
 from .typing_compat import EdgeLiteral, SessionTab, SessionType, TypedDict
-from .utils import cmdline_for_hold, color_as_int, log_error, platform_window_id, resolved_shell, shlex_split, which
+from .utils import cmdline_for_hold, color_as_int, log_error, path_from_osc7_url, platform_window_id, resolved_shell, shlex_split, which
 from .window import CwdRequest, Watchers, Window, WindowCreationSpec, WindowDict, global_watchers
 from .window_list import WindowGroup, WindowList
 
 P = ParamSpec('P')
 T = TypeVar('T')
+SIDE_NAV_PROC_CWD_TTL = 2.0  # seconds
 
 
 def update_tab_bar_visibility(func: Callable[Concatenate['TabManager', P], T]) -> Callable[Concatenate['TabManager', P], T]:
@@ -1455,6 +1456,7 @@ class TabManager:  # {{{
         self.tab_bar = TabBar(self.os_window_id)
         self.side_nav = SideNav(self.os_window_id)
         self.side_nav_repos = RepoCache()
+        self.side_nav_proc_cwds: dict[int, tuple[float, str]] = {}
         self.side_nav_scroll_pending = 0.0
         # cwds and branches change without any tab event, so poll for them
         self.side_nav_timer = add_timer(self.on_side_nav_timer, 2.0, True) if get_options().side_nav_width else 0
@@ -1570,23 +1572,40 @@ class TabManager:  # {{{
         self.tab_bar.layout()
         self.side_nav.layout()
 
+    def side_nav_cwd(self, w: Window, now: float) -> str:
+        # The shell's last reported cwd follows cd at once and costs nothing.
+        if w.screen.last_reported_cwd and not w.child_is_remote:
+            return path_from_osc7_url(w.screen.last_reported_cwd) or ''
+        # Reading the cwd from /proc scans every process on the system, and this
+        # runs on every title change, so the result is reused for a while.
+        if (cached := self.side_nav_proc_cwds.get(w.id)) is not None and now - cached[0] < SIDE_NAV_PROC_CWD_TTL:
+            return cached[1]
+        cwd = w.get_cwd_of_child() or ''
+        self.side_nav_proc_cwds[w.id] = (now, cwd)
+        return cwd
+
     def update_side_nav_data(self) -> None:
         entries = []
-        for i, t in enumerate(self.tabs_to_be_shown_in_tab_bar):
-            td = t.data_for_tab_bar(t is self.active_tab)
-            w = t.active_window
-            entries.append(
-                SideNavTabInput(
-                    td.tab_id,
-                    i + 1,
-                    td.title,
-                    td.is_active,
-                    td.needs_attention,
-                    td.has_activity_since_last_focus,
-                    most_urgent_agent_state(x.user_vars.get('agent_state', '') for x in t),
-                    w.side_nav_cwd if w else '',
+        now = monotonic()
+        with cached_process_data():
+            for i, t in enumerate(self.tabs_to_be_shown_in_tab_bar):
+                td = t.data_for_tab_bar(t is self.active_tab)
+                w = t.active_window
+                entries.append(
+                    SideNavTabInput(
+                        td.tab_id,
+                        i + 1,
+                        td.title,
+                        td.is_active,
+                        td.needs_attention,
+                        td.has_activity_since_last_focus,
+                        most_urgent_agent_state(x.user_vars.get('agent_state', '') for x in t),
+                        self.side_nav_cwd(w, now) if w else '',
+                    )
                 )
-            )
+        if len(self.side_nav_proc_cwds) > 2 * max(1, len(entries)):
+            live = {w.id for t in self for w in t}
+            self.side_nav_proc_cwds = {k: v for k, v in self.side_nav_proc_cwds.items() if k in live}
         self.side_nav.ensure_laid_out()
         self.side_nav.update(build_groups(entries, self.side_nav_repos))
 
@@ -2494,6 +2513,9 @@ class TabManager:  # {{{
         self.side_nav.apply_options()
         if get_options().side_nav_width and not self.side_nav_timer:
             self.side_nav_timer = add_timer(self.on_side_nav_timer, 2.0, True)
+        elif not get_options().side_nav_width and self.side_nav_timer:
+            remove_timer(self.side_nav_timer)
+            self.side_nav_timer = 0
         self.update_tab_bar_data()
         self.layout_tab_bar()
 
