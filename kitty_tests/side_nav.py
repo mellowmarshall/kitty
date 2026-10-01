@@ -127,6 +127,10 @@ class TestSideNav(BaseTest):
         self.assertFalse(t.is_working(6, 0.1, 5.0, 60.0))
         self.assertTrue(t.is_working(6, 0.1, 5.5, 60.5))
         self.assertFalse(t.is_working(6, 3.0, 8.0, 63.0))  # quiet now
+        # typing drops a streak that had not become work yet
+        self.assertFalse(t.is_working(7, 0.1, -1, 70.0))
+        self.assertFalse(t.is_working(7, 0.1, 0.2, 75.0))
+        self.assertFalse(t.is_working(7, 0.1, 5.0, 80.0))
         t.forget_all_but({2})
         self.ae(set(t.streaks), {2})
 

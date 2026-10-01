@@ -68,7 +68,11 @@ class ActivityTracker:
         count = self.streaks.get(window_id, (0.0, 0))[1]
         if follows_stimulus(output_ago, stimulus_ago):
             # The output may only be a redraw, so it neither starts work nor ends
-            # it: a program that was working before a resize stays working.
+            # it: a program that was working before a resize stays working. A
+            # streak that had not yet become work is dropped, so that typing
+            # cannot keep it alive until some unrelated output completes it.
+            if count < 2:
+                self.streaks.pop(window_id, None)
             return count >= 2
         output_at = now - output_ago
         last_at = self.streaks.get(window_id, (0.0, 0))[0]
