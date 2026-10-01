@@ -205,7 +205,12 @@ class SideNav:
             s.resize(lines, cols)
             s.reset_mode(DECAWM)
         self.top = r.top
-        self.visible_lines = max(1, r.height // ch)
+        visible_lines = max(1, r.height // ch)
+        if visible_lines != self.visible_lines:
+            # A resize or font change can push the active row out of view, or
+            # leave the bottom empty after the window grows.
+            self.visible_lines = visible_lines
+            self.keep_active_tab_visible()
         set_side_nav_render_data(self.os_window_id, s, r.left, r.top, r.left + cols * cw, r.top + lines * ch)
         self.render()
         return True

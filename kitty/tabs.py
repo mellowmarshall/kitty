@@ -1456,7 +1456,8 @@ class TabManager:  # {{{
         self.tab_bar = TabBar(self.os_window_id)
         self.side_nav = SideNav(self.os_window_id)
         self.side_nav_repos = RepoCache()
-        self.side_nav_proc_cwds: dict[int, tuple[float, str]] = {}
+        self.side_nav_proc_cwds: dict[int, str] = {}
+        self.side_nav_proc_cwds_at = 0.0
         self.side_nav_scroll_pending = 0.0
         # cwds and branches change without any tab event, so poll for them
         self.side_nav_timer = add_timer(self.on_side_nav_timer, 2.0, True) if get_options().side_nav_width else 0
@@ -1572,21 +1573,22 @@ class TabManager:  # {{{
         self.tab_bar.layout()
         self.side_nav.layout()
 
-    def side_nav_cwd(self, w: Window, now: float) -> str:
+    def side_nav_cwd(self, w: Window) -> str:
         # The shell's last reported cwd follows cd at once and costs nothing.
         if w.screen.last_reported_cwd and not w.child_is_remote:
             return path_from_osc7_url(w.screen.last_reported_cwd) or ''
         # Reading the cwd from /proc scans every process on the system, and this
-        # runs on every title change, so the result is reused for a while.
-        if (cached := self.side_nav_proc_cwds.get(w.id)) is not None and now - cached[0] < SIDE_NAV_PROC_CWD_TTL:
-            return cached[1]
-        cwd = w.get_cwd_of_child() or ''
-        self.side_nav_proc_cwds[w.id] = (now, cwd)
+        # runs on every title change, so results are reused until the whole map
+        # expires. Expiring it as one keeps it to one scan per period.
+        if (cwd := self.side_nav_proc_cwds.get(w.id)) is None:
+            self.side_nav_proc_cwds[w.id] = cwd = w.get_cwd_of_child() or ''
         return cwd
 
     def update_side_nav_data(self) -> None:
         entries = []
-        now = monotonic()
+        if (now := monotonic()) - self.side_nav_proc_cwds_at >= SIDE_NAV_PROC_CWD_TTL:
+            self.side_nav_proc_cwds = {}
+            self.side_nav_proc_cwds_at = now
         with cached_process_data():
             for i, t in enumerate(self.tabs_to_be_shown_in_tab_bar):
                 td = t.data_for_tab_bar(t is self.active_tab)
@@ -1600,12 +1602,9 @@ class TabManager:  # {{{
                         td.needs_attention,
                         td.has_activity_since_last_focus,
                         most_urgent_agent_state(x.user_vars.get('agent_state', '') for x in t),
-                        self.side_nav_cwd(w, now) if w else '',
+                        self.side_nav_cwd(w) if w else '',
                     )
                 )
-        if len(self.side_nav_proc_cwds) > 2 * max(1, len(entries)):
-            live = {w.id for t in self for w in t}
-            self.side_nav_proc_cwds = {k: v for k, v in self.side_nav_proc_cwds.items() if k in live}
         self.side_nav.ensure_laid_out()
         self.side_nav.update(build_groups(entries, self.side_nav_repos))
 
