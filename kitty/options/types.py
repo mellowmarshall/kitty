@@ -462,6 +462,7 @@ option_names = (
     'show_hyperlink_targets',
     'side_nav_background',
     'side_nav_edge',
+    'side_nav_filter_tab_bar',
     'side_nav_width',
     'single_window_margin_width',
     'single_window_padding_width',
@@ -682,6 +683,7 @@ class Options:
     show_hyperlink_targets: typing.Literal['never', 'always', 'Ctrl', 'Shift', 'Super', 'Alt'] = 'never'
     side_nav_background: kitty.fast_data_types.Color | None = None
     side_nav_edge: int = 1
+    side_nav_filter_tab_bar: bool = True
     side_nav_width: int = 0
     single_window_margin_width: FloatEdges = FloatEdges(left=-1.0, top=-1.0, right=-1.0, bottom=-1.0)
     single_window_padding_width: FloatEdges = FloatEdges(left=-1.0, top=-1.0, right=-1.0, bottom=-1.0)

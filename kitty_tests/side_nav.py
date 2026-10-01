@@ -14,6 +14,7 @@ from kitty.side_nav import (
     rows_for_groups,
 )
 from kitty.side_nav_repo import RepoCache, RepoInfo, find_repo, shorten_path
+from kitty.side_nav_tabs import ActivityTracker, output_is_work
 
 from .base import BaseTest
 
@@ -29,7 +30,7 @@ def write(path: str, text: str) -> None:
 
 
 def tab(tab_id: int, cwd: str, title: str = '', is_active: bool = False, agent_state: str = '', needs_attention: bool = False) -> SideNavTabInput:
-    return SideNavTabInput(tab_id, tab_id, title or f't{tab_id}', is_active, needs_attention, False, agent_state, cwd)
+    return SideNavTabInput(tab_id, title or f't{tab_id}', is_active, needs_attention, False, agent_state, cwd)
 
 
 class TestSideNav(BaseTest):
@@ -101,6 +102,40 @@ class TestSideNav(BaseTest):
             cache(f'/nonexistent/{i}')
         self.assertLessEqual(len(cache.entries), 4)
 
+    def test_output_is_work(self):
+        # (seconds since output, seconds since user input) -> working
+        for args, expected in {
+            (-1, -1): False,  # never wrote anything
+            (0.2, -1): True,  # writing, user never typed
+            (3.0, -1): False,  # quiet for a while
+            (0.2, 0.25): False,  # echo of typing
+            (0.2, 0.9): False,  # redraw soon after the user pressed enter
+            (0.2, 1.5): True,  # still writing well after the input
+            (0.2, 60): True,
+            (2.0, 60): False,
+        }.items():
+            self.ae(output_is_work(*args), expected, args)
+
+    def test_activity_needs_repeated_output(self):
+        t = ActivityTracker()
+        # a shell printing its prompt once is not working, however often it is checked
+        self.assertFalse(t.is_working(1, 0.1, -1, 10.0))
+        self.assertFalse(t.is_working(1, 0.6, -1, 10.5))
+        self.assertFalse(t.is_working(1, 1.1, -1, 11.0))
+        self.assertFalse(t.is_working(1, 2.0, -1, 11.9))  # quiet, the streak ends
+        # output that keeps coming is working, from the second separate output on
+        self.assertFalse(t.is_working(2, 0.1, -1, 20.0))
+        self.assertTrue(t.is_working(2, 0.1, -1, 20.5))
+        self.assertTrue(t.is_working(2, 0.4, -1, 20.8))
+        # two outputs closer together than the gap are one burst
+        self.assertFalse(t.is_working(3, 0.0, -1, 30.0))
+        self.assertFalse(t.is_working(3, 0.0, -1, 30.1))
+        # typing echo never counts
+        self.assertFalse(t.is_working(4, 0.1, 0.2, 40.0))
+        self.assertFalse(t.is_working(4, 0.1, 0.2, 41.0))
+        t.forget_all_but({2})
+        self.ae(set(t.streaks), {2})
+
     def test_shorten_path(self):
         self.ae(shorten_path('/home/u', '/home/u'), '~')
         self.ae(shorten_path('/home/u/Dev/x', '/home/u'), '~/Dev/x')
@@ -132,6 +167,9 @@ class TestSideNav(BaseTest):
         self.ae(groups[2].detail, '')
         # the repo lookup runs once per distinct cwd
         self.ae(sorted(calls), ['/r/a', '/r/a/sub', '/r/b', '/tmp'])
+        # tabs are numbered by their position in the project, which is what
+        # the tab bar shows while that project is selected
+        self.ae([[t.index for t in g.tabs] for g in groups], [[1, 2], [1, 2], [1]])
         self.ae(build_groups((), repo_for), ())
 
     def test_rows_and_agent_state(self):

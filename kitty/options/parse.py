@@ -1357,6 +1357,9 @@ class Parser:
     def side_nav_edge(self, val: str, ans: dict[str, typing.Any]) -> None:
         ans['side_nav_edge'] = side_nav_edge(val)
 
+    def side_nav_filter_tab_bar(self, val: str, ans: dict[str, typing.Any]) -> None:
+        ans['side_nav_filter_tab_bar'] = to_bool(val)
+
     def side_nav_width(self, val: str, ans: dict[str, typing.Any]) -> None:
         ans['side_nav_width'] = positive_int(val)
 

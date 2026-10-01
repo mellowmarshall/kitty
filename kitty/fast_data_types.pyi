@@ -1231,6 +1231,9 @@ class Screen:
     def has_focus(self) -> bool:
         pass
 
+    def io_times(self) -> tuple[float, float]:
+        pass
+
     def has_activity_since_last_focus(self) -> bool:
         pass
 

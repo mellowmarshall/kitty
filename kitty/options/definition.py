@@ -2540,6 +2540,18 @@ opt(
 )
 
 opt(
+    'side_nav_filter_tab_bar',
+    'yes',
+    option_type='to_bool',
+    long_text="""
+When the side nav is shown, the tab bar shows only the tabs of the selected
+project, which is the git repository of the active tab. Clicking a project in
+the side nav selects it. Switching to the next or previous tab, and going to a
+tab by number, also stay within the project.
+""",
+)
+
+opt(
     'side_nav_background',
     'none',
     option_type='to_color_or_none',
