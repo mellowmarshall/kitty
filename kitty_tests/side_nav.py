@@ -172,31 +172,37 @@ class TestSideNav(BaseTest):
             repo_for,
         )
         sn.update(groups)
-        # rows: alpha, detail, 1, 2, blank, beta, detail, 3, 4 = 9 rows on 6 lines,
-        # so the view scrolls to keep the active tab visible
+        # rows: alpha, detail, 1, 2, blank, beta, detail, 3, 4 = 9 rows. Only 5
+        # of the 6 lines are fully visible, so the view scrolls until the active
+        # tab is on the fifth line rather than on the clipped sixth.
         self.ae(len(sn.rows), 9)
-        self.ae(sn.scroll_offset, 3)
+        self.ae(sn.scroll_offset, 4)
         lines = self.screen_lines(sn)
-        self.ae(lines[0].split()[:2], ['2', 'claude'])
-        self.assertTrue(lines[0].endswith('●'))
-        self.ae(lines[2].strip(), '▌beta')
-        self.ae(lines[3].strip(), 'dev · /b')
-        self.assertTrue(lines[5].endswith('…'), lines[5])
-        self.ae(len(lines[5]), sn.screen.columns)
+        self.ae(lines[0], '')
+        self.ae(lines[1].strip(), '▌beta')
+        self.ae(lines[2].strip(), 'dev · /b')
+        self.assertTrue(lines[4].endswith('…'), lines[4])
+        self.ae(len(lines[4]), sn.screen.columns)
+        self.ae(lines[5], '')
 
         # clicks map screen lines to tabs, group and detail rows focus the first tab
-        self.ae(sn.tab_id_at(0), 2)
-        self.ae(sn.tab_id_at(20 * 2 + 5), 3)
-        self.ae(sn.tab_id_at(20 * 1), 0)  # blank row
-        self.ae(sn.tab_id_at(20 * 5), 4)
+        self.ae(sn.tab_id_at(0), 0)  # blank row
+        self.ae(sn.tab_id_at(20 * 1 + 5), 3)
+        self.ae(sn.tab_id_at(20 * 3), 3)
+        self.ae(sn.tab_id_at(20 * 4), 4)
+        self.ae(sn.tab_id_at(20 * 5), 0)  # past the last row
         self.ae(sn.tab_id_at(20 * 6), 0)  # below the last line
         self.ae(sn.tab_id_at(-5), 0)
 
         sn.scroll(-100)
         self.ae(sn.scroll_offset, 0)
-        self.ae(self.screen_lines(sn)[0].split(), ['alpha', '●'])
+        lines = self.screen_lines(sn)
+        self.ae(lines[0].split(), ['alpha', '●'])
+        self.ae(lines[3].split()[:2], ['2', 'claude'])
+        self.assertTrue(lines[3].endswith('●'))
+        self.ae(sn.tab_id_at(0), 1)  # a group row focuses its first tab
         sn.scroll(100)
-        self.ae(sn.scroll_offset, 3)
+        self.ae(sn.scroll_offset, 4)
 
         # Lines past the last row keep the default background after a redraw,
         # even when the previous render ended on the highlighted active tab.
@@ -211,6 +217,36 @@ class TestSideNav(BaseTest):
         with patch.object(sn, 'render') as render:
             sn.update(groups)
             render.assert_not_called()
+
+    def test_manual_scroll_survives_updates(self):
+        sn = self.side_nav(height=110)
+        self.ae(sn.visible_lines, 5)  # the sixth line is clipped, so it does not count
+        repo_for = {'/a': RepoInfo('/a', 'alpha', 'main'), '/b': RepoInfo('/b', 'beta', 'dev')}.get
+
+        def groups(active: int, title: str = 'logs'):
+            return build_groups(
+                (tab(1, '/a'), tab(2, '/a'), tab(3, '/b', title), tab(4, '/b', is_active=active == 4), tab(5, '/b', is_active=active == 5)), repo_for
+            )
+
+        sn.update(groups(4))
+        # the active row (index 8) sits on the last fully visible line
+        self.ae(sn.scroll_offset, 4)
+        sn.scroll(-100)
+        self.ae(sn.scroll_offset, 0)
+        # a title change keeps the user's scroll position
+        sn.update(groups(4, 'logs updated'))
+        self.ae(sn.scroll_offset, 0)
+        # a change of the active tab scrolls to it again
+        sn.update(groups(5, 'logs updated'))
+        self.ae(sn.scroll_offset, 5)
+
+    def test_control_characters_are_not_drawn(self):
+        sn = self.side_nav()
+        sn.update(build_groups((tab(1, '/a', 'one\ntwo\rthree\x1b[31m', is_active=True),), lambda cwd: RepoInfo(cwd, 'x\ny', 'b\x08r')))
+        lines = self.screen_lines(sn)
+        self.ae(lines[0].strip(), '▌xy')
+        self.ae(lines[1].strip(), 'br · /a')
+        self.ae(lines[2].split(), ['1', 'onetwothree[31m'])
 
     def test_layout_rejects_tiny_regions(self):
         self.set_options({'side_nav_width': 20})

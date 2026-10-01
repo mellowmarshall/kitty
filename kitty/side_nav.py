@@ -6,6 +6,7 @@
 # tab's active window. It owns a cell Screen and a region carved out of the OS
 # window in C (os_window_side_nav_region), exactly like the tab bar does.
 
+import re
 from collections.abc import Callable, Iterable, Sequence
 from typing import Literal, NamedTuple
 
@@ -27,6 +28,7 @@ from .utils import color_as_int
 # Agent states that hooks report with: kitten @ set-user-vars agent_state=<state>
 # Ordered from most to least urgent, so a tab shows its most urgent window.
 AGENT_STATE_PRIORITY = ('blocked', 'waiting', 'working', 'done')
+control_chars = re.compile(r'[\x00-\x1f\x7f-\x9f]')
 
 
 class SideNavTabInput(NamedTuple):
@@ -171,6 +173,10 @@ class SideNav:
         self.rows: tuple[SideNavRow, ...] = ()
         self.scroll_offset = 0
         self.top = 0
+        # Lines that are fully inside the region, scrolling uses these so the
+        # active row never lands on the clipped last line.
+        self.visible_lines = 1
+        self.active_tab_id = 0
         self.laid_out_region: tuple[int, int, int, int] = (0, 0, 0, 0)
         self.cell_width, self.cell_height = cell_size_for_window(os_window_id)
         self.screen = Screen(None, 1, 10, 0, self.cell_width, self.cell_height)
@@ -199,6 +205,7 @@ class SideNav:
             s.resize(lines, cols)
             s.reset_mode(DECAWM)
         self.top = r.top
+        self.visible_lines = max(1, r.height // ch)
         set_side_nav_render_data(self.os_window_id, s, r.left, r.top, r.left + cols * cw, r.top + lines * ch)
         self.render()
         return True
@@ -214,11 +221,18 @@ class SideNav:
             return
         self.groups = groups
         self.rows = rows_for_groups(groups)
-        self.keep_active_tab_visible()
+        active = next((t.tab_id for g in groups for t in g.tabs if t.is_active), 0)
+        # Only follow the active tab when it changes, so that title and agent
+        # updates do not undo a scroll the user made.
+        if active != self.active_tab_id:
+            self.active_tab_id = active
+            self.keep_active_tab_visible()
+        else:
+            self.clamp_scroll()
         self.render()
 
     def keep_active_tab_visible(self) -> None:
-        lines = self.screen.lines
+        lines = self.visible_lines
         for i, row in enumerate(self.rows):
             if row.kind == 'tab' and row.tab is not None and row.tab.is_active:
                 if i < self.scroll_offset:
@@ -229,7 +243,7 @@ class SideNav:
         self.clamp_scroll()
 
     def clamp_scroll(self) -> None:
-        self.scroll_offset = max(0, min(self.scroll_offset, len(self.rows) - self.screen.lines))
+        self.scroll_offset = max(0, min(self.scroll_offset, len(self.rows) - self.visible_lines))
 
     def scroll(self, lines: int) -> None:
         before = self.scroll_offset
@@ -268,7 +282,9 @@ class SideNav:
     def draw_text(self, text: str, fg: int, bg: int, bold: bool = False) -> None:
         s = self.screen
         s.cursor.fg, s.cursor.bg, s.cursor.bold = fg, bg, bold
-        s.draw(fit(text, s.columns - s.cursor.x))
+        # Directory names and git metadata may contain control characters,
+        # which Screen.draw would act on.
+        s.draw(fit(control_chars.sub('', text), s.columns - s.cursor.x))
 
     def draw_row(self, line: int, row: SideNavRow) -> None:
         c, s = self.colors, self.screen

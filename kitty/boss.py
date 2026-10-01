@@ -125,6 +125,7 @@ from .fast_data_types import (
     set_os_window_title,
     set_tab_being_dragged,
     set_window_being_dragged,
+    side_nav_region,
     start_drag_with_data,
     thread_write,
     toggle_fullscreen,
@@ -401,6 +402,11 @@ class VisualSelect:
                 tm.set_active_tab(t)
         if current_focused_os_window_id() != self.prev_os_window_id and self.prev_os_window_id is not None:
             focus_os_window(self.prev_os_window_id, True)
+
+
+def point_in_side_nav(os_window_id: int, x: float, y: float) -> bool:
+    r = side_nav_region(os_window_id)
+    return r.left <= x < r.right and r.top <= y < r.bottom
 
 
 class Boss:
@@ -2215,7 +2221,8 @@ class Boss:
                 self._update_drag_over(None if is_leave else tm)
                 tab_bar = viewport_for_window(os_window_id)[1]
                 in_tab_bar = tab_bar.left <= x < tab_bar.right and tab_bar.top <= y < tab_bar.bottom
-                detach = not in_tab_bar or tab.os_window_id != tm.os_window_id or is_leave
+                same_window_side_nav = tab.os_window_id == tm.os_window_id and point_in_side_nav(os_window_id, x, y)
+                detach = not (in_tab_bar or same_window_side_nav) or tab.os_window_id != tm.os_window_id or is_leave
                 change_drag_thumbnail(tab.os_window_id, 1 if detach else 0)
                 merge_window = None if is_leave else self._tab_merge_target(tab, tm, x, y)
                 merge_window_id = merge_window.id if merge_window is not None else 0
@@ -2258,6 +2265,10 @@ class Boss:
                 if in_tab_bar and tab.os_window_id == tm.os_window_id:
                     restore_tab_drag_focus_for = tm
                 tm.on_tab_drop(x, y)
+            elif point_in_side_nav(os_window_id, x, y):
+                # The side nav is not a drop target, dropping a tab there must
+                # not detach it into a new OS window.
+                restore_tab_drag_focus_for = tm
             else:
                 self._move_tab_to(tab)
             set_tab_being_dragged()
