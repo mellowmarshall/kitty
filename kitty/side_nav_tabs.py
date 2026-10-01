@@ -46,11 +46,13 @@ ECHO_WINDOW = 1.0
 REPEAT_GAP = 0.3
 
 
-def output_is_work(output_ago: float, input_ago: float) -> bool:
-    "Arguments are seconds since the last output and the last user input, -1 for never"
-    if output_ago < 0 or output_ago > WORKING_OUTPUT_WINDOW:
-        return False
-    return input_ago < 0 or input_ago - output_ago >= ECHO_WINDOW
+def is_recent_output(output_ago: float) -> bool:
+    return 0 <= output_ago <= WORKING_OUTPUT_WINDOW
+
+
+def follows_stimulus(output_ago: float, stimulus_ago: float) -> bool:
+    "True when the last output may be the program redrawing in response to a stimulus"
+    return stimulus_ago >= 0 and stimulus_ago - output_ago < ECHO_WINDOW
 
 
 class ActivityTracker:
@@ -58,15 +60,21 @@ class ActivityTracker:
         # window id -> (time of the last output that counted, number of separate outputs in a row)
         self.streaks: dict[int, tuple[float, int]] = {}
 
-    def is_working(self, window_id: int, output_ago: float, input_ago: float, now: float) -> bool:
-        if not output_is_work(output_ago, input_ago):
+    def is_working(self, window_id: int, output_ago: float, stimulus_ago: float, now: float) -> bool:
+        "Arguments are seconds since the last output and the last stimulus, -1 for never"
+        if not is_recent_output(output_ago):
             self.streaks.pop(window_id, None)
             return False
+        count = self.streaks.get(window_id, (0.0, 0))[1]
+        if follows_stimulus(output_ago, stimulus_ago):
+            # The output may only be a redraw, so it neither starts work nor ends
+            # it: a program that was working before a resize stays working.
+            return count >= 2
         output_at = now - output_ago
-        last_at, count = self.streaks.get(window_id, (0.0, 0))
+        last_at = self.streaks.get(window_id, (0.0, 0))[0]
         if not count or output_at - last_at >= REPEAT_GAP:
-            last_at, count = output_at, count + 1
-            self.streaks[window_id] = last_at, count
+            count += 1
+            self.streaks[window_id] = output_at, count
         return count >= 2
 
     def forget_all_but(self, live: set[int]) -> None:
@@ -86,6 +94,7 @@ class SideNavController:
         self.worked: set[int] = set()
         self.activity = ActivityTracker()
         self.last_group_keys: tuple[tuple[int, str], ...] = ()
+        self.known_group_keys: dict[int, str] = {}
         self.timer = 0
         self.sync_timer()
 
@@ -98,6 +107,9 @@ class SideNavController:
             self.timer = 0
 
     def on_timer(self, timer_id: int | None) -> None:
+        # Sample here rather than only when rendering, so that work done while
+        # the OS window is minimized or hidden still ends up shown as done.
+        self.update()
         mark_side_nav_dirty(self.os_window_id)
 
     @property
@@ -117,8 +129,13 @@ class SideNavController:
 
     def group_key(self, tab: 'Tab') -> str:
         w = tab.active_window
-        repo = self.repos(self.cwd(w)) if w else None
-        return repo.root if repo else ''
+        if w is None:
+            # A closing tab has lost its windows before the next tab is chosen,
+            # it still belongs to the project it was in.
+            return self.known_group_keys.get(tab.id, '')
+        repo = self.repos(self.cwd(w))
+        self.known_group_keys[tab.id] = key = repo.root if repo else ''
+        return key
 
     def filter_tab_bar(self, tabs: Iterable['Tab']) -> Iterable['Tab']:
         "With a project selected in the side nav, the tab bar shows only its tabs"
@@ -132,7 +149,12 @@ class SideNavController:
         # A state reported by the program itself, for example by an agent hook, wins.
         if explicit := w.user_vars.get('agent_state', ''):
             return explicit
-        if self.activity.is_working(w.id, *w.screen.io_times(), now):
+        output_ago, stimulus_ago = w.screen.io_times()
+        # A resize makes shells and TUIs redraw, which is not work either
+        resized_ago = now - w.last_resized_at if w.last_resized_at else -1
+        if resized_ago >= 0 and (stimulus_ago < 0 or resized_ago < stimulus_ago):
+            stimulus_ago = resized_ago
+        if self.activity.is_working(w.id, output_ago, stimulus_ago, now):
             self.worked.add(w.id)
             return 'working'
         if w.id in self.worked:
@@ -148,7 +170,8 @@ class SideNavController:
             self.proc_cwds_at = now
         tm = self.tm
         at = tm.active_tab
-        focused_window = at.active_window if at is not None and current_focused_os_window_id() == self.os_window_id else None
+        # Every window of the active tab is on screen, so all of them count as seen
+        tab_in_view = at if current_focused_os_window_id() == self.os_window_id else None
         entries = []
         keys = []
         live: set[int] = set()
@@ -160,7 +183,7 @@ class SideNavController:
                 states = []
                 for x in t:
                     live.add(x.id)
-                    states.append(self.window_state(x, x is focused_window, now))
+                    states.append(self.window_state(x, t is tab_in_view, now))
                 entries.append(
                     SideNavTabInput(
                         td.tab_id,
@@ -172,9 +195,10 @@ class SideNavController:
                         cwd,
                     )
                 )
-                repo = self.repos(cwd)
-                keys.append((t.id, repo.root if repo else ''))
+                keys.append((t.id, self.group_key(t)))
         self.worked &= live
+        tab_ids = {t_id for t_id, _ in keys}
+        self.known_group_keys = {k: v for k, v in self.known_group_keys.items() if k in tab_ids}
         self.activity.forget_all_but(live)
         self.nav.ensure_laid_out()
         self.nav.update(build_groups(entries, self.repos))

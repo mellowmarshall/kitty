@@ -14,7 +14,7 @@ from kitty.side_nav import (
     rows_for_groups,
 )
 from kitty.side_nav_repo import RepoCache, RepoInfo, find_repo, shorten_path
-from kitty.side_nav_tabs import ActivityTracker, output_is_work
+from kitty.side_nav_tabs import ActivityTracker
 
 from .base import BaseTest
 
@@ -102,20 +102,6 @@ class TestSideNav(BaseTest):
             cache(f'/nonexistent/{i}')
         self.assertLessEqual(len(cache.entries), 4)
 
-    def test_output_is_work(self):
-        # (seconds since output, seconds since user input) -> working
-        for args, expected in {
-            (-1, -1): False,  # never wrote anything
-            (0.2, -1): True,  # writing, user never typed
-            (3.0, -1): False,  # quiet for a while
-            (0.2, 0.25): False,  # echo of typing
-            (0.2, 0.9): False,  # redraw soon after the user pressed enter
-            (0.2, 1.5): True,  # still writing well after the input
-            (0.2, 60): True,
-            (2.0, 60): False,
-        }.items():
-            self.ae(output_is_work(*args), expected, args)
-
     def test_activity_needs_repeated_output(self):
         t = ActivityTracker()
         # a shell printing its prompt once is not working, however often it is checked
@@ -133,6 +119,14 @@ class TestSideNav(BaseTest):
         # typing echo never counts
         self.assertFalse(t.is_working(4, 0.1, 0.2, 40.0))
         self.assertFalse(t.is_working(4, 0.1, 0.2, 41.0))
+        # a redraw after a resize or focus change neither starts nor ends work
+        self.assertTrue(t.is_working(2, 0.1, 0.3, 21.0))
+        self.assertFalse(t.is_working(5, 0.1, 0.3, 50.0))
+        self.assertFalse(t.is_working(5, 0.1, 0.3, 50.5))
+        # output well after the stimulus counts again
+        self.assertFalse(t.is_working(6, 0.1, 5.0, 60.0))
+        self.assertTrue(t.is_working(6, 0.1, 5.5, 60.5))
+        self.assertFalse(t.is_working(6, 3.0, 8.0, 63.0))  # quiet now
         t.forget_all_but({2})
         self.ae(set(t.streaks), {2})
 

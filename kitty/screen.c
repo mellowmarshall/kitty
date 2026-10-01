@@ -6836,13 +6836,13 @@ paste_(Screen *self, PyObject *bytes, bool allow_bracketed_paste) {
 
 static PyObject *
 paste(Screen *self, PyObject *bytes) {
-    self->last_user_input_at = monotonic();
+    self->last_stimulus_at = monotonic();
     return paste_(self, bytes, true);
 }
 
 static PyObject *
 paste_bytes(Screen *self, PyObject *bytes) {
-    self->last_user_input_at = monotonic();
+    self->last_stimulus_at = monotonic();
     return paste_(self, bytes, false);
 }
 
@@ -6854,7 +6854,10 @@ focus_changed(Screen *self, PyObject *has_focus_) {
         self->has_focus = has_focus;
         if (has_focus) self->has_activity_since_last_focus = false;
         else if (screen_is_overlay_active(self)) deactivate_overlay_line(self);
-        if (self->modes.mFOCUS_TRACKING) write_escape_code_to_child(self, ESC_CSI, has_focus ? "I" : "O");
+        if (self->modes.mFOCUS_TRACKING) {
+            self->last_stimulus_at = monotonic();
+            write_escape_code_to_child(self, ESC_CSI, has_focus ? "I" : "O");
+        }
         Py_RETURN_TRUE;
     }
     Py_RETURN_FALSE;
@@ -6874,10 +6877,10 @@ has_activity_since_last_focus(Screen *self, PyObject *args UNUSED) {
 
 static PyObject *
 io_times(Screen *self, PyObject *args UNUSED) {
-    // Seconds since the last child output and since the last user input, -1 for never
+    // Seconds since the last child output and since the last stimulus, -1 for never
     monotonic_t now = monotonic();
 #define AGO(t) ((t) ? monotonic_t_to_s_double(now - (t)) : -1.)
-    return Py_BuildValue("dd", AGO(self->last_output_at), AGO(self->last_user_input_at));
+    return Py_BuildValue("dd", AGO(self->last_output_at), AGO(self->last_stimulus_at));
 #undef AGO
 }
 
