@@ -1433,6 +1433,7 @@ mouse_event(const int button, int modifiers, int action) {
     MouseRegion r = mouse_region(true, true);
     w = r.window;
     window_idx = r.window_idx;
+    if (w && button >= 0 && w->render_data.screen) w->render_data.screen->last_stimulus_at = monotonic();
     set_currently_hovered_window(w && !r.window_border && !r.in_title_bar ? w->id : 0, modifiers, true);
 
     if (r.in_tab_bar || global_state.tab_being_dragged.id) {
@@ -1619,6 +1620,7 @@ scroll_event(const GLFWScrollEvent *ev) {
         return;
     }
     Window *w = r.window;
+    if (w && w->render_data.screen) w->render_data.screen->last_stimulus_at = monotonic();
     if (!w && !r.in_tab_bar) {
         // fallback to last active window
         Tab *t = osw->tabs + osw->active_tab;
