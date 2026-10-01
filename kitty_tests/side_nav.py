@@ -240,6 +240,26 @@ class TestSideNav(BaseTest):
         sn.update(groups(5, 'logs updated'))
         self.ae(sn.scroll_offset, 5)
 
+    def test_resize_keeps_active_tab_visible(self):
+        sn = self.side_nav(height=400)  # 20 lines, everything fits
+        sn.update(build_groups(tuple(tab(i, '/a', is_active=i == 12) for i in range(1, 13)), lambda cwd: RepoInfo(cwd, 'a', 'main')))
+        self.ae(sn.scroll_offset, 0)
+
+        def relayout(height: int) -> None:
+            with (
+                patch('kitty.side_nav.cell_size_for_window', return_value=(10, 20)),
+                patch('kitty.side_nav.side_nav_region', return_value=region(0, 0, 200, height)),
+                patch('kitty.side_nav.set_side_nav_render_data'),
+            ):
+                sn.layout()
+
+        relayout(100)  # 5 lines: the active tab (row 13) must scroll into view
+        self.ae(sn.visible_lines, 5)
+        self.ae(sn.scroll_offset, 9)
+        self.ae(self.screen_lines(sn)[4].split(), ['12', 't12'])
+        relayout(400)  # growing again leaves no empty space at the bottom
+        self.ae(sn.scroll_offset, 0)
+
     def test_control_characters_are_not_drawn(self):
         sn = self.side_nav()
         sn.update(build_groups((tab(1, '/a', 'one\ntwo\rthree\x1b[31m', is_active=True),), lambda cwd: RepoInfo(cwd, 'x\ny', 'b\x08r')))
