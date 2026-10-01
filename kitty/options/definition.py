@@ -2515,6 +2515,38 @@ looks better.
 """,
 )
 
+opt(
+    'side_nav_width',
+    '0',
+    option_type='positive_int',
+    ctype='int',
+    long_text="""
+The width (in cells) of the side nav, a sidebar that lists every tab in the OS
+window grouped by the git repository of the tab's active window. It is shown in
+addition to the tab bar, so you can keep tabs on the top edge and repositories
+on the side. A value of zero disables it. Use the :ac:`toggle_side_nav` action
+to show or hide it at runtime.
+""",
+)
+
+opt(
+    'side_nav_edge',
+    'left',
+    option_type='side_nav_edge',
+    ctype='int',
+    long_text='The edge to show the side nav on, :code:`left` or :code:`right`.',
+)
+
+opt(
+    'side_nav_background',
+    'none',
+    option_type='to_color_or_none',
+    long_text="""
+Background color for the side nav. Defaults to :opt:`tab_bar_background`, or
+the terminal background if that is not set.
+""",
+)
+
 egr()  # }}}
 
 

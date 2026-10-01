@@ -1251,6 +1251,18 @@ class Screen:
 def set_tab_bar_render_data(os_window_id: int, screen: Screen, left: int, top: int, right: int, bottom: int) -> None:
     pass
 
+def set_side_nav_render_data(os_window_id: int, screen: Screen, left: int, top: int, right: int, bottom: int) -> None:
+    pass
+
+def mark_side_nav_dirty(os_window_id: int) -> None:
+    pass
+
+def set_side_nav_hidden(os_window_id: int, hidden: bool) -> bool:
+    pass
+
+def side_nav_region(os_window_id: int) -> Region:
+    pass
+
 def set_window_title_bar_render_data(os_window_id: int, tab_id: int, window_id: int, screen: Screen, left: int, top: int, right: int, bottom: int) -> None:
     pass
 

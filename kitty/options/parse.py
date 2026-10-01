@@ -19,8 +19,8 @@ from kitty.options.utils import (
     mouse_hide_wait, narrow_symbols, notify_on_cmd_finish, optional_edge_width, parse_font_spec,
     parse_map, parse_mouse_map, paste_actions, pointer_shape_when_dragging, remap_modifiers,
     remote_control_password, resize_debounce_time, scrollback_lines, scrollback_pager_history_size,
-    scrollbar_color, shell_integration, show_hyperlink_targets, store_multiple, symbol_map,
-    tab_activity_symbol, tab_bar_edge, tab_bar_margin_height, tab_bar_min_tabs, tab_fade,
+    scrollbar_color, shell_integration, show_hyperlink_targets, side_nav_edge, store_multiple,
+    symbol_map, tab_activity_symbol, tab_bar_edge, tab_bar_margin_height, tab_bar_min_tabs, tab_fade,
     tab_font_style, tab_separator, tab_title_template, tab_title_wrap, text_fg_override_threshold,
     titlebar_color, to_cursor_shape, to_cursor_unfocused_shape, to_font_size, to_layout_names,
     to_modifiers, transparent_background_colors, underline_exclusion, url_prefixes, url_style,
@@ -1350,6 +1350,15 @@ class Parser:
 
     def show_hyperlink_targets(self, val: str, ans: dict[str, typing.Any]) -> None:
         ans['show_hyperlink_targets'] = show_hyperlink_targets(val)
+
+    def side_nav_background(self, val: str, ans: dict[str, typing.Any]) -> None:
+        ans['side_nav_background'] = to_color_or_none(val)
+
+    def side_nav_edge(self, val: str, ans: dict[str, typing.Any]) -> None:
+        ans['side_nav_edge'] = side_nav_edge(val)
+
+    def side_nav_width(self, val: str, ans: dict[str, typing.Any]) -> None:
+        ans['side_nav_width'] = positive_int(val)
 
     def single_window_margin_width(self, val: str, ans: dict[str, typing.Any]) -> None:
         ans['single_window_margin_width'] = optional_edge_width(val)

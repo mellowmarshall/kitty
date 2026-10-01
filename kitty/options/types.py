@@ -460,6 +460,9 @@ option_names = (
     'shell',
     'shell_integration',
     'show_hyperlink_targets',
+    'side_nav_background',
+    'side_nav_edge',
+    'side_nav_width',
     'single_window_margin_width',
     'single_window_padding_width',
     'startup_session',
@@ -677,6 +680,9 @@ class Options:
     shell: str = '.'
     shell_integration: frozenset[str] = frozenset({'enabled'})
     show_hyperlink_targets: typing.Literal['never', 'always', 'Ctrl', 'Shift', 'Super', 'Alt'] = 'never'
+    side_nav_background: kitty.fast_data_types.Color | None = None
+    side_nav_edge: int = 1
+    side_nav_width: int = 0
     single_window_margin_width: FloatEdges = FloatEdges(left=-1.0, top=-1.0, right=-1.0, bottom=-1.0)
     single_window_padding_width: FloatEdges = FloatEdges(left=-1.0, top=-1.0, right=-1.0, bottom=-1.0)
     startup_session: str | None = None
@@ -1183,6 +1189,7 @@ nullable_colors = frozenset({
     'window_title_bar_inactive_background',
     'tab_bar_background',
     'tab_bar_margin_color',
+    'side_nav_background',
     'selection_foreground',
     'selection_background',
     'color16',
@@ -1455,6 +1462,7 @@ all_colors = frozenset({
     'inactive_tab_background',
     'tab_bar_background',
     'tab_bar_margin_color',
+    'side_nav_background',
     'foreground',
     'background',
     'selection_foreground',

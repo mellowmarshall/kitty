@@ -989,6 +989,14 @@ handle_tab_bar_mouse(int button, int modifiers, int action) {
     }
 }
 
+static void
+handle_side_nav_mouse(int button, int modifiers, int action) {
+    set_currently_hovered_window(0, modifiers, false);
+    OSWindow *w = global_state.callback_os_window;
+    // motion events are not reported, the side nav only reacts to clicks
+    if (w && button > -1) call_boss(handle_side_nav_mouse, "Kddiii", w->id, w->mouse_x, w->mouse_y, button, modifiers, action);
+}
+
 static bool
 mouse_in_region(Region *r) {
     if (r->left == r->right) return false;
@@ -1010,6 +1018,7 @@ num_visible_windows(Tab *t) {
 typedef struct MouseRegion {
     unsigned window_idx;
     bool in_tab_bar;
+    bool in_side_nav;
     bool in_title_bar;
     Edge window_border;
     Window *window;
@@ -1020,6 +1029,12 @@ mouse_region(bool detect_borders, bool detect_title_bar) {
     MouseRegion ans = {0};
     Region central, tab_bar;
     const OSWindow *w = global_state.callback_os_window;
+    Region side_nav;
+    os_window_side_nav_region(w, &side_nav);
+    if (mouse_in_region(&side_nav)) {
+        ans.in_side_nav = true;
+        return ans;
+    }
     os_window_regions(w, &central, &tab_bar);
     const bool in_central = mouse_in_region(&central);
     if (!in_central) {
@@ -1158,7 +1173,7 @@ void
 update_mouse_pointer_shape(void) {
     mouse_cursor_shape = TEXT_POINTER;
     MouseRegion r = mouse_region(false, true);
-    if (r.in_tab_bar) {
+    if (r.in_tab_bar || r.in_side_nav) {
         mouse_cursor_shape = POINTER_POINTER;
     } else if (r.in_title_bar) {
         mouse_cursor_shape = POINTER_POINTER;
@@ -1424,6 +1439,10 @@ mouse_event(const int button, int modifiers, int action) {
         mouse_cursor_shape = POINTER_POINTER;
         handle_tab_bar_mouse(button, modifiers, action);
         debug("handled by tab bar\n");
+    } else if (r.in_side_nav) {
+        mouse_cursor_shape = POINTER_POINTER;
+        handle_side_nav_mouse(button, modifiers, action);
+        debug("handled by side nav\n");
     } else if ((r.in_title_bar && r.window) || global_state.window_being_dragged.id) {
         mouse_cursor_shape = POINTER_POINTER;
         Window *tw = r.window;
@@ -1594,6 +1613,10 @@ scroll_event(const GLFWScrollEvent *ev) {
         osw->mouse_y = mouse_y * osw->viewport_y_ratio;
     }
     MouseRegion r = mouse_region(false, true);
+    if (r.in_side_nav) {
+        if (ev->y_offset != 0) call_boss(handle_side_nav_scroll, "Kdi", osw->id, ev->y_offset, (int)ev->offset_type);
+        return;
+    }
     Window *w = r.window;
     if (!w && !r.in_tab_bar) {
         // fallback to last active window

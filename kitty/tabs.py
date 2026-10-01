@@ -37,6 +37,7 @@ from .fast_data_types import (
     get_window_being_dragged,
     is_tab_bar_visible,
     last_focused_os_window_id,
+    mark_side_nav_dirty,
     mark_tab_bar_dirty,
     monotonic,
     next_window_id,
@@ -49,8 +50,10 @@ from .fast_data_types import (
     set_active_tab,
     set_active_window,
     set_redirect_keys_to_overlay,
+    set_side_nav_hidden,
     set_tab_being_dragged,
     set_window_being_dragged,
+    side_nav_region,
     start_drag_with_data,
     swap_tabs,
     sync_os_window_title,
@@ -58,6 +61,8 @@ from .fast_data_types import (
 from .layout.base import DragOverlayMode, Layout
 from .layout.interface import all_layouts, create_layout_object_for, evict_cached_layouts
 from .progress import ProgressState
+from .side_nav import SideNav, SideNavTabInput, build_groups, most_urgent_agent_state
+from .side_nav_repo import RepoCache
 from .tab_bar import TabBar, TabBarData, WindowDropTarget, apply_title_template
 from .types import DockSpec, ac
 from .typing_compat import EdgeLiteral, SessionTab, SessionType, TypedDict
@@ -1448,6 +1453,11 @@ class TabManager:  # {{{
         self.tabs: list[Tab] = []
         self.active_tab_history: Deque[int] = deque()
         self.tab_bar = TabBar(self.os_window_id)
+        self.side_nav = SideNav(self.os_window_id)
+        self.side_nav_repos = RepoCache()
+        self.side_nav_scroll_pending = 0.0
+        # cwds and branches change without any tab event, so poll for them
+        self.side_nav_timer = add_timer(self.on_side_nav_timer, 2.0, True) if get_options().side_nav_width else 0
         self._active_tab_idx = 0
 
         if startup_session is not None:
@@ -1558,6 +1568,54 @@ class TabManager:  # {{{
         # set tab_bar_should_be_visible so that tab_bar.layout() gets correct dimensions
         self.mark_tab_bar_dirty()
         self.tab_bar.layout()
+        self.side_nav.layout()
+
+    def update_side_nav_data(self) -> None:
+        entries = []
+        for i, t in enumerate(self.tabs_to_be_shown_in_tab_bar):
+            td = t.data_for_tab_bar(t is self.active_tab)
+            w = t.active_window
+            entries.append(
+                SideNavTabInput(
+                    td.tab_id,
+                    i + 1,
+                    td.title,
+                    td.is_active,
+                    td.needs_attention,
+                    td.has_activity_since_last_focus,
+                    most_urgent_agent_state(x.user_vars.get('agent_state', '') for x in t),
+                    w.side_nav_cwd if w else '',
+                )
+            )
+        self.side_nav.ensure_laid_out()
+        self.side_nav.update(build_groups(entries, self.side_nav_repos))
+
+    def on_side_nav_timer(self, timer_id: int | None) -> None:
+        mark_side_nav_dirty(self.os_window_id)
+
+    def toggle_side_nav(self) -> None:
+        if set_side_nav_hidden(self.os_window_id, side_nav_region(self.os_window_id).width > 0):
+            # The central area changed size, so every tab must relayout
+            self.resize()
+
+    def handle_side_nav_mouse(self, x: float, y: float, button: int, modifiers: int, action: int) -> None:
+        if button != GLFW_MOUSE_BUTTON_LEFT or action != GLFW_PRESS:
+            return
+        if (tab := self.tab_for_id(self.side_nav.tab_id_at(y))) is not None:
+            self.set_active_tab(tab)
+
+    def handle_side_nav_scroll(self, offset: float, offset_type: int) -> None:
+        # offset_type is GLFWOffsetType: 0 lines, 1 v120 (120 per wheel detent), 2 pixels
+        if offset_type == 1:
+            offset = offset / 120.0
+        elif offset_type == 2:
+            offset = offset / max(1, self.side_nav.cell_height)
+        self.side_nav_scroll_pending += offset
+        lines = int(self.side_nav_scroll_pending)
+        if lines:
+            self.side_nav_scroll_pending -= lines
+            # A positive offset scrolls up, towards the first rows
+            self.side_nav.scroll(-lines)
 
     @property
     def any_window(self) -> Window | None:
@@ -1569,6 +1627,7 @@ class TabManager:  # {{{
     def mark_tab_bar_dirty(self) -> None:
         should_be_shown = not self.tab_bar_hidden and self.tab_bar_should_be_visible
         mark_tab_bar_dirty(self.os_window_id, should_be_shown)
+        mark_side_nav_dirty(self.os_window_id)
         w = self.active_window or self.any_window
         if w is not None:
             data = {'tab_manager': self}
@@ -1590,6 +1649,8 @@ class TabManager:  # {{{
         if not only_tabs:
             if not self.tab_bar_hidden:
                 self.layout_tab_bar()
+            else:
+                self.side_nav.layout()
         for tab in self.tabs:
             tab.relayout()
 
@@ -2417,6 +2478,11 @@ class TabManager:  # {{{
             t.destroy()
         self.tab_bar.destroy()
         del self.tab_bar
+        if self.side_nav_timer:
+            remove_timer(self.side_nav_timer)
+            self.side_nav_timer = 0
+        self.side_nav.destroy()
+        del self.side_nav
         del self.tabs
 
     def apply_options(self) -> None:
@@ -2425,6 +2491,9 @@ class TabManager:  # {{{
             tab.apply_options(at is tab)
         self.tab_bar_hidden = get_options().tab_bar_style == 'hidden'
         self.tab_bar.apply_options()
+        self.side_nav.apply_options()
+        if get_options().side_nav_width and not self.side_nav_timer:
+            self.side_nav_timer = add_timer(self.on_side_nav_timer, 2.0, True)
         self.update_tab_bar_data()
         self.layout_tab_bar()
 

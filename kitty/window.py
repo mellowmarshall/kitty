@@ -79,6 +79,7 @@ from .fast_data_types import (
     is_modifier_key,
     last_focused_os_window_id,
     mark_os_window_dirty,
+    mark_side_nav_dirty,
     monotonic,
     mouse_selection,
     move_cursor_to_mouse_if_in_prompt,
@@ -1354,6 +1355,8 @@ class Window:
     def set_user_var(self, key: str, val: str | bytes | None) -> None:
         key = sanitize_control_codes(key).replace('\n', ' ')
         self.user_vars.pop(key, None)  # ensure key will be newest in user_vars even if already present
+        if key == 'agent_state':
+            mark_side_nav_dirty(self.os_window_id)
         if len(self.user_vars) > 64:  # dont store too many user vars
             oldest_key = next(iter(self.user_vars))
             self.user_vars.pop(oldest_key)
@@ -2147,6 +2150,14 @@ class Window:
     @property
     def cwd_of_child(self) -> str | None:
         return self.get_cwd_of_child()
+
+    @property
+    def side_nav_cwd(self) -> str:
+        # The shell's last reported cwd follows cd at once and costs nothing,
+        # /proc is the fallback for shells without shell integration.
+        if self.screen.last_reported_cwd and not self.child_is_remote:
+            return path_from_osc7_url(self.screen.last_reported_cwd) or ''
+        return self.get_cwd_of_child() or ''
 
     @property
     def root_in_foreground_processes(self) -> bool:
