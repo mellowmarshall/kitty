@@ -15,7 +15,7 @@ from gettext import gettext as _
 from typing import Any, Concatenate, Deque, Literal, NamedTuple, Optional, ParamSpec, TypeVar, cast
 
 from .borders import Border, Borders
-from .child import Child, cached_process_data
+from .child import Child
 from .cli_stub import CLIOptions, SaveAsSessionOptions
 from .constants import appname
 from .fast_data_types import (
@@ -50,10 +50,8 @@ from .fast_data_types import (
     set_active_tab,
     set_active_window,
     set_redirect_keys_to_overlay,
-    set_side_nav_hidden,
     set_tab_being_dragged,
     set_window_being_dragged,
-    side_nav_region,
     start_drag_with_data,
     swap_tabs,
     sync_os_window_title,
@@ -61,18 +59,16 @@ from .fast_data_types import (
 from .layout.base import DragOverlayMode, Layout
 from .layout.interface import all_layouts, create_layout_object_for, evict_cached_layouts
 from .progress import ProgressState
-from .side_nav import SideNav, SideNavTabInput, build_groups, most_urgent_agent_state
-from .side_nav_repo import RepoCache
+from .side_nav_tabs import SideNavController
 from .tab_bar import TabBar, TabBarData, WindowDropTarget, apply_title_template
 from .types import DockSpec, ac
 from .typing_compat import EdgeLiteral, SessionTab, SessionType, TypedDict
-from .utils import cmdline_for_hold, color_as_int, log_error, path_from_osc7_url, platform_window_id, resolved_shell, shlex_split, which
+from .utils import cmdline_for_hold, color_as_int, log_error, platform_window_id, resolved_shell, shlex_split, which
 from .window import CwdRequest, Watchers, Window, WindowCreationSpec, WindowDict, global_watchers
 from .window_list import WindowGroup, WindowList
 
 P = ParamSpec('P')
 T = TypeVar('T')
-SIDE_NAV_PROC_CWD_TTL = 2.0  # seconds
 
 
 def update_tab_bar_visibility(func: Callable[Concatenate['TabManager', P], T]) -> Callable[Concatenate['TabManager', P], T]:
@@ -1454,13 +1450,7 @@ class TabManager:  # {{{
         self.tabs: list[Tab] = []
         self.active_tab_history: Deque[int] = deque()
         self.tab_bar = TabBar(self.os_window_id)
-        self.side_nav = SideNav(self.os_window_id)
-        self.side_nav_repos = RepoCache()
-        self.side_nav_proc_cwds: dict[int, str] = {}
-        self.side_nav_proc_cwds_at = 0.0
-        self.side_nav_scroll_pending = 0.0
-        # cwds and branches change without any tab event, so poll for them
-        self.side_nav_timer = add_timer(self.on_side_nav_timer, 2.0, True) if get_options().side_nav_width else 0
+        self.side_nav = SideNavController(self)
         self._active_tab_idx = 0
 
         if startup_session is not None:
@@ -1554,7 +1544,9 @@ class TabManager:  # {{{
         tab_id, drag_started = get_tab_being_dragged()[:2]
         if drag_started and self.tab_for_id(tab_id) is not None:
             return True  # keep tab bar visible in the source
-        for t in self.tabs_to_be_shown_in_tab_bar:
+        # Count every tab, not just the selected project's, so that switching
+        # projects in the side nav does not show and hide the tab bar.
+        for t in self.tabs_matching_tab_bar_filter:
             count -= 1
             if count < 1:
                 return True
@@ -1571,69 +1563,7 @@ class TabManager:  # {{{
         # set tab_bar_should_be_visible so that tab_bar.layout() gets correct dimensions
         self.mark_tab_bar_dirty()
         self.tab_bar.layout()
-        self.side_nav.layout()
-
-    def side_nav_cwd(self, w: Window) -> str:
-        # The shell's last reported cwd follows cd at once and costs nothing.
-        if w.screen.last_reported_cwd and not w.child_is_remote:
-            return path_from_osc7_url(w.screen.last_reported_cwd) or ''
-        # Reading the cwd from /proc scans every process on the system, and this
-        # runs on every title change, so results are reused until the whole map
-        # expires. Expiring it as one keeps it to one scan per period.
-        if (cwd := self.side_nav_proc_cwds.get(w.id)) is None:
-            self.side_nav_proc_cwds[w.id] = cwd = w.get_cwd_of_child() or ''
-        return cwd
-
-    def update_side_nav_data(self) -> None:
-        entries = []
-        if (now := monotonic()) - self.side_nav_proc_cwds_at >= SIDE_NAV_PROC_CWD_TTL:
-            self.side_nav_proc_cwds = {}
-            self.side_nav_proc_cwds_at = now
-        with cached_process_data():
-            for i, t in enumerate(self.tabs_to_be_shown_in_tab_bar):
-                td = t.data_for_tab_bar(t is self.active_tab)
-                w = t.active_window
-                entries.append(
-                    SideNavTabInput(
-                        td.tab_id,
-                        i + 1,
-                        td.title,
-                        td.is_active,
-                        td.needs_attention,
-                        td.has_activity_since_last_focus,
-                        most_urgent_agent_state(x.user_vars.get('agent_state', '') for x in t),
-                        self.side_nav_cwd(w) if w else '',
-                    )
-                )
-        self.side_nav.ensure_laid_out()
-        self.side_nav.update(build_groups(entries, self.side_nav_repos))
-
-    def on_side_nav_timer(self, timer_id: int | None) -> None:
-        mark_side_nav_dirty(self.os_window_id)
-
-    def toggle_side_nav(self) -> None:
-        if set_side_nav_hidden(self.os_window_id, side_nav_region(self.os_window_id).width > 0):
-            # The central area changed size, so every tab must relayout
-            self.resize()
-
-    def handle_side_nav_mouse(self, x: float, y: float, button: int, modifiers: int, action: int) -> None:
-        if button != GLFW_MOUSE_BUTTON_LEFT or action != GLFW_PRESS:
-            return
-        if (tab := self.tab_for_id(self.side_nav.tab_id_at(y))) is not None:
-            self.set_active_tab(tab)
-
-    def handle_side_nav_scroll(self, offset: float, offset_type: int) -> None:
-        # offset_type is GLFWOffsetType: 0 lines, 1 v120 (120 per wheel detent), 2 pixels
-        if offset_type == 1:
-            offset = offset / 120.0
-        elif offset_type == 2:
-            offset = offset / max(1, self.side_nav.cell_height)
-        self.side_nav_scroll_pending += offset
-        lines = int(self.side_nav_scroll_pending)
-        if lines:
-            self.side_nav_scroll_pending -= lines
-            # A positive offset scrolls up, towards the first rows
-            self.side_nav.scroll(-lines)
+        self.side_nav.nav.layout()
 
     @property
     def any_window(self) -> Window | None:
@@ -1668,7 +1598,7 @@ class TabManager:  # {{{
             if not self.tab_bar_hidden:
                 self.layout_tab_bar()
             else:
-                self.side_nav.layout()
+                self.side_nav.nav.layout()
         for tab in self.tabs:
             tab.relayout()
 
@@ -1693,13 +1623,17 @@ class TabManager:  # {{{
         return True
 
     @property
-    def tabs_to_be_shown_in_tab_bar(self) -> Iterable[Tab]:
+    def tabs_matching_tab_bar_filter(self) -> Iterable[Tab]:
         f = get_options().tab_bar_filter
         if f:
             at = self.active_tab
             m = frozenset(get_boss().match_tabs(f, all_tabs=self))
             return (t for t in self if t is at or t in m)
         return self.tabs
+
+    @property
+    def tabs_to_be_shown_in_tab_bar(self) -> Iterable[Tab]:
+        return self.side_nav.filter_tab_bar(self.tabs_matching_tab_bar_filter)
 
     def next_tab(self, delta: int = 1) -> None:
         if (len(tabs := tuple(self.tabs_to_be_shown_in_tab_bar))) == len(self.tabs):
@@ -2496,9 +2430,6 @@ class TabManager:  # {{{
             t.destroy()
         self.tab_bar.destroy()
         del self.tab_bar
-        if self.side_nav_timer:
-            remove_timer(self.side_nav_timer)
-            self.side_nav_timer = 0
         self.side_nav.destroy()
         del self.side_nav
         del self.tabs
@@ -2510,11 +2441,6 @@ class TabManager:  # {{{
         self.tab_bar_hidden = get_options().tab_bar_style == 'hidden'
         self.tab_bar.apply_options()
         self.side_nav.apply_options()
-        if get_options().side_nav_width and not self.side_nav_timer:
-            self.side_nav_timer = add_timer(self.on_side_nav_timer, 2.0, True)
-        elif not get_options().side_nav_width and self.side_nav_timer:
-            remove_timer(self.side_nav_timer)
-            self.side_nav_timer = 0
         self.update_tab_bar_data()
         self.layout_tab_bar()
 

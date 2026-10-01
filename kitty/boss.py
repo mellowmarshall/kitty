@@ -1289,7 +1289,7 @@ class Boss:
     )
     def toggle_side_nav(self) -> None:
         if tm := self.active_tab_manager_with_dispatch:
-            tm.toggle_side_nav()
+            tm.side_nav.toggle()
 
     @ac('tab', 'Close all the tabs in the current OS window other than the currently active tab')
     def close_other_tabs_in_os_window(self) -> None:
@@ -1572,15 +1572,15 @@ class Boss:
 
     def handle_side_nav_mouse(self, os_window_id: int, x: float, y: float, button: int, modifiers: int, action: int) -> None:
         if tm := self.os_window_map.get(os_window_id):
-            tm.handle_side_nav_mouse(x, y, button, modifiers, action)
+            tm.side_nav.handle_mouse(x, y, button, modifiers, action)
 
     def handle_side_nav_scroll(self, os_window_id: int, offset: float, offset_type: int) -> None:
         if tm := self.os_window_map.get(os_window_id):
-            tm.handle_side_nav_scroll(offset, offset_type)
+            tm.side_nav.handle_scroll(offset, offset_type)
 
     def update_side_nav_data(self, os_window_id: int) -> None:
         if tm := self.os_window_map.get(os_window_id):
-            tm.update_side_nav_data()
+            tm.side_nav.update()
 
     def start_tab_drag(self, os_window_id: int, window_id: int, pixels: bytes, width: int, height: int) -> None:
         # A previous drag whose drop never reached _reset_drop_previews (failed transfer, dragged

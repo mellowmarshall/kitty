@@ -160,6 +160,9 @@ typedef struct {
     bool has_focus;
     uint8_t visibility_state; // 0 = unknown, 1 = potentially visible, 2 = not visible
     bool has_activity_since_last_focus;
+    // When the child last wrote output and when the user last typed or pasted
+    // into it. The side nav uses them to tell a working program from typing echo.
+    monotonic_t last_output_at, last_user_input_at;
     hyperlink_id_type active_hyperlink_id;
     HYPERLINK_POOL_HANDLE hyperlink_pool;
     ANSIBuf as_ansi_buf;

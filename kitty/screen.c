@@ -6836,11 +6836,13 @@ paste_(Screen *self, PyObject *bytes, bool allow_bracketed_paste) {
 
 static PyObject *
 paste(Screen *self, PyObject *bytes) {
+    self->last_user_input_at = monotonic();
     return paste_(self, bytes, true);
 }
 
 static PyObject *
 paste_bytes(Screen *self, PyObject *bytes) {
+    self->last_user_input_at = monotonic();
     return paste_(self, bytes, false);
 }
 
@@ -6868,6 +6870,15 @@ static PyObject *
 has_activity_since_last_focus(Screen *self, PyObject *args UNUSED) {
     if (self->has_activity_since_last_focus) Py_RETURN_TRUE;
     Py_RETURN_FALSE;
+}
+
+static PyObject *
+io_times(Screen *self, PyObject *args UNUSED) {
+    // Seconds since the last child output and since the last user input, -1 for never
+    monotonic_t now = monotonic();
+#define AGO(t) ((t) ? monotonic_t_to_s_double(now - (t)) : -1.)
+    return Py_BuildValue("dd", AGO(self->last_output_at), AGO(self->last_user_input_at));
+#undef AGO
 }
 
 WRAP2(cursor_position, 1, 1)
@@ -7209,9 +7220,9 @@ static PyMethodDef methods[] = {
                     MND(scroll_to_prompt, METH_VARARGS) MND(set_last_visited_prompt, METH_VARARGS) MND(send_escape_code_to_child, METH_VARARGS)
                         MND(pause_rendering, METH_VARARGS) MND(hyperlink_at, METH_VARARGS) MND(toggle_alt_screen, METH_NOARGS) MND(reset_callbacks, METH_NOARGS)
                             MND(paste, METH_O) MND(paste_bytes, METH_O) MND(focus_changed, METH_O) MND(has_focus, METH_NOARGS)
-                                MND(has_activity_since_last_focus, METH_NOARGS) MND(copy_colors_from, METH_O) MND(set_marker, METH_VARARGS)
-                                    MND(marked_cells, METH_NOARGS) MND(scroll_to_next_mark, METH_VARARGS) MND(update_only_line_graphics_data, METH_NOARGS)
-                                        MND(bell, METH_NOARGS) MND(current_selections, METH_NOARGS){
+                                MND(has_activity_since_last_focus, METH_NOARGS) MND(io_times, METH_NOARGS) MND(copy_colors_from, METH_O)
+                                    MND(set_marker, METH_VARARGS) MND(marked_cells, METH_NOARGS) MND(scroll_to_next_mark, METH_VARARGS)
+                                        MND(update_only_line_graphics_data, METH_NOARGS) MND(bell, METH_NOARGS) MND(current_selections, METH_NOARGS){
                                             "select_graphic_rendition", (PyCFunction)_select_graphic_rendition, METH_VARARGS, ""},
 
     {NULL} /* Sentinel */

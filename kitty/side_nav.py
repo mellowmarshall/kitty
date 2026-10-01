@@ -33,7 +33,6 @@ control_chars = re.compile(r'[\x00-\x1f\x7f-\x9f]')
 
 class SideNavTabInput(NamedTuple):
     tab_id: int
-    index: int  # the tab's 1-based position in the tab bar
     title: str
     is_active: bool
     needs_attention: bool
@@ -44,7 +43,7 @@ class SideNavTabInput(NamedTuple):
 
 class SideNavTab(NamedTuple):
     tab_id: int
-    index: int
+    index: int  # the 1-based position in the tab bar while this project is selected
     title: str
     is_active: bool
     needs_attention: bool
@@ -91,7 +90,7 @@ def build_groups(entries: Iterable[SideNavTabInput], repo_for: Callable[[str], R
             order.append(key)
             members[key] = []
             repos[key] = repo
-        members[key].append(SideNavTab(e.tab_id, e.index, e.title, e.is_active, e.needs_attention, e.has_activity, e.agent_state))
+        members[key].append(SideNavTab(e.tab_id, len(members[key]) + 1, e.title, e.is_active, e.needs_attention, e.has_activity, e.agent_state))
     groups = []
     for key in order:
         repo = repos[key]
