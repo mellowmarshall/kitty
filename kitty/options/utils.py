@@ -858,6 +858,10 @@ def tab_bar_edge(x: str) -> int:
             return defines.BOTTOM_EDGE
 
 
+def side_nav_edge(x: str) -> int:
+    return defines.RIGHT_EDGE if x.lower() == 'right' else defines.LEFT_EDGE
+
+
 def tab_font_style(x: str) -> tuple[bool, bool]:
     return {'bold-italic': (True, True), 'bold': (True, False), 'italic': (False, True)}.get(x.lower().replace('_', '-'), (False, False))
 

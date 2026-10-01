@@ -1,0 +1,224 @@
+#!/usr/bin/env python
+# License: GPL v3
+
+import os
+import tempfile
+from unittest.mock import patch
+
+from kitty.fast_data_types import Region
+from kitty.side_nav import (
+    SideNav,
+    SideNavTabInput,
+    build_groups,
+    most_urgent_agent_state,
+    rows_for_groups,
+)
+from kitty.side_nav_repo import RepoCache, RepoInfo, find_repo, shorten_path
+
+from .base import BaseTest
+
+
+def region(left: int, top: int, right: int, bottom: int) -> Region:
+    return Region((left, top, right, bottom, right - left, bottom - top))
+
+
+def write(path: str, text: str) -> None:
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, 'w') as f:
+        f.write(text)
+
+
+def tab(tab_id: int, cwd: str, title: str = '', is_active: bool = False, agent_state: str = '', needs_attention: bool = False) -> SideNavTabInput:
+    return SideNavTabInput(tab_id, tab_id, title or f't{tab_id}', is_active, needs_attention, False, agent_state, cwd)
+
+
+class TestSideNav(BaseTest):
+    def setUp(self) -> None:
+        super().setUp()
+        self.tdir = os.path.realpath(tempfile.mkdtemp())
+
+    def tearDown(self) -> None:
+        self.rmtree_ignoring_errors(self.tdir)
+        super().tearDown()
+
+    def test_find_repo(self):
+        main = os.path.join(self.tdir, 'proj')
+        write(os.path.join(main, '.git', 'HEAD'), 'ref: refs/heads/feature/x\n')
+        os.makedirs(os.path.join(main, 'src', 'deep'))
+        self.ae(find_repo(os.path.join(main, 'src', 'deep')), RepoInfo(main, 'proj', 'feature/x', False))
+        self.ae(find_repo(main), RepoInfo(main, 'proj', 'feature/x', False))
+        self.assertIsNone(find_repo(self.tdir))
+        self.assertIsNone(find_repo(''))
+        self.assertIsNone(find_repo('relative/path'))
+
+        # A detached HEAD shows a short commit hash
+        write(os.path.join(main, '.git', 'HEAD'), '0123456789abcdef0123456789abcdef01234567\n')
+        detached = find_repo(main)
+        assert detached is not None
+        self.ae(detached.branch, '01234567')
+
+        # A linked worktree groups under the main repository's name
+        wt = os.path.join(self.tdir, 'elsewhere', 'wt-branch')
+        wt_gitdir = os.path.join(main, '.git', 'worktrees', 'wt-branch')
+        write(os.path.join(wt, '.git'), f'gitdir: {wt_gitdir}\n')
+        write(os.path.join(wt_gitdir, 'HEAD'), 'ref: refs/heads/side-nav\n')
+        write(os.path.join(wt_gitdir, 'commondir'), '../..\n')
+        self.ae(find_repo(wt), RepoInfo(wt, 'proj', 'side-nav', True))
+
+        # A relative gitdir in the .git file is resolved against the worktree
+        sub = os.path.join(main, 'vendor', 'lib')
+        write(os.path.join(sub, '.git'), 'gitdir: ../../.git/modules/lib\n')
+        write(os.path.join(main, '.git', 'modules', 'lib', 'HEAD'), 'ref: refs/heads/main\n')
+        self.ae(find_repo(sub), RepoInfo(sub, 'lib', 'main', False))
+
+        # A .git file that is not a gitdir pointer is skipped and the search goes up
+        bogus = os.path.join(main, 'bogus')
+        write(os.path.join(bogus, '.git'), 'not a pointer\n')
+        parent = find_repo(bogus)
+        assert parent is not None
+        self.ae(parent.root, main)
+
+    def test_repo_cache(self):
+        main = os.path.join(self.tdir, 'proj')
+        write(os.path.join(main, '.git', 'HEAD'), 'ref: refs/heads/one\n')
+        now = [100.0]
+        cache = RepoCache(ttl=2.0, clock=lambda: now[0])
+        repo = cache(main)
+        assert repo is not None
+        self.ae(repo.branch, 'one')
+        write(os.path.join(main, '.git', 'HEAD'), 'ref: refs/heads/two\n')
+        now[0] += 1.9
+        repo = cache(main)
+        assert repo is not None
+        self.ae(repo.branch, 'one')  # still cached
+        now[0] += 0.2
+        repo = cache(main)
+        assert repo is not None
+        self.ae(repo.branch, 'two')  # expired, so the new branch is seen
+        # the cache stays bounded
+        cache.max_entries = 4
+        for i in range(10):
+            cache(f'/nonexistent/{i}')
+        self.assertLessEqual(len(cache.entries), 4)
+
+    def test_shorten_path(self):
+        self.ae(shorten_path('/home/u', '/home/u'), '~')
+        self.ae(shorten_path('/home/u/Dev/x', '/home/u'), '~/Dev/x')
+        self.ae(shorten_path('/home/user2/x', '/home/u'), '/home/user2/x')
+        self.ae(shorten_path('/opt/x', '/home/u'), '/opt/x')
+
+    def test_build_groups(self):
+        repos = {
+            '/r/a': RepoInfo('/r/a', 'a', 'main'),
+            '/r/a/sub': RepoInfo('/r/a', 'a', 'main'),
+            '/r/b': RepoInfo('/r/b', 'b', ''),
+        }
+        calls: list[str] = []
+
+        def repo_for(cwd: str) -> RepoInfo | None:
+            calls.append(cwd)
+            return repos.get(cwd)
+
+        groups = build_groups(
+            (tab(1, '/r/b'), tab(2, '/r/a'), tab(3, '/tmp'), tab(4, '/r/a/sub', is_active=True), tab(5, '/r/b')),
+            repo_for,
+        )
+        # groups appear in the order of their first tab, members keep tab order
+        self.ae([g.name for g in groups], ['b', 'a', 'other'])
+        self.ae([[t.tab_id for t in g.tabs] for g in groups], [[1, 5], [2, 4], [3]])
+        self.ae([g.is_active for g in groups], [False, True, False])
+        self.ae(groups[0].detail, '/r/b')
+        self.ae(groups[1].detail, 'main · /r/a')
+        self.ae(groups[2].detail, '')
+        # the repo lookup runs once per distinct cwd
+        self.ae(sorted(calls), ['/r/a', '/r/a/sub', '/r/b', '/tmp'])
+        self.ae(build_groups((), repo_for), ())
+
+    def test_rows_and_agent_state(self):
+        groups = build_groups((tab(1, '/a'), tab(2, '/b')), lambda cwd: RepoInfo(cwd, cwd[1:], 'main'))
+        rows = rows_for_groups(groups)
+        self.ae([(r.kind, r.tab_id) for r in rows], [('group', 1), ('detail', 1), ('tab', 1), ('blank', 0), ('group', 2), ('detail', 2), ('tab', 2)])
+        self.ae(most_urgent_agent_state(('done', 'working', '')), 'working')
+        self.ae(most_urgent_agent_state(('Waiting', 'blocked')), 'blocked')
+        self.ae(most_urgent_agent_state(('', 'bogus')), '')
+
+    def side_nav(self, height: int = 100, width: int = 200) -> SideNav:
+        self.set_options({'side_nav_width': 20})
+        with (
+            patch('kitty.side_nav.cell_size_for_window', return_value=(10, 20)),
+            patch('kitty.side_nav.side_nav_region', return_value=region(0, 0, width, height)),
+            patch('kitty.side_nav.set_side_nav_render_data') as srd,
+        ):
+            sn = SideNav(1)
+            self.assertTrue(sn.layout())
+            # the line count rounds up so the grid covers the whole region
+            self.ae((sn.screen.columns, sn.screen.lines), (width // 10, (height + 19) // 20))
+            self.ae(srd.call_args[0][2:], (0, 0, width, sn.screen.lines * 20))
+        return sn
+
+    def screen_lines(self, sn: SideNav) -> list[str]:
+        return [str(sn.screen.line(i)).rstrip() for i in range(sn.screen.lines)]
+
+    def test_render_click_and_scroll(self):
+        sn = self.side_nav(height=110)  # 6 lines, the last one partly visible
+        repo_for = {'/a': RepoInfo('/a', 'alpha', 'main'), '/b': RepoInfo('/b', 'beta', 'dev')}.get
+        groups = build_groups(
+            (
+                tab(1, '/a', 'shell'),
+                tab(2, '/a', 'claude', agent_state='waiting'),
+                tab(3, '/b', 'logs'),
+                tab(4, '/b', 'a very long tab title that cannot fit', is_active=True),
+            ),
+            repo_for,
+        )
+        sn.update(groups)
+        # rows: alpha, detail, 1, 2, blank, beta, detail, 3, 4 = 9 rows on 6 lines,
+        # so the view scrolls to keep the active tab visible
+        self.ae(len(sn.rows), 9)
+        self.ae(sn.scroll_offset, 3)
+        lines = self.screen_lines(sn)
+        self.ae(lines[0].split()[:2], ['2', 'claude'])
+        self.assertTrue(lines[0].endswith('●'))
+        self.ae(lines[2].strip(), '▌beta')
+        self.ae(lines[3].strip(), 'dev · /b')
+        self.assertTrue(lines[5].endswith('…'), lines[5])
+        self.ae(len(lines[5]), sn.screen.columns)
+
+        # clicks map screen lines to tabs, group and detail rows focus the first tab
+        self.ae(sn.tab_id_at(0), 2)
+        self.ae(sn.tab_id_at(20 * 2 + 5), 3)
+        self.ae(sn.tab_id_at(20 * 1), 0)  # blank row
+        self.ae(sn.tab_id_at(20 * 5), 4)
+        self.ae(sn.tab_id_at(20 * 6), 0)  # below the last line
+        self.ae(sn.tab_id_at(-5), 0)
+
+        sn.scroll(-100)
+        self.ae(sn.scroll_offset, 0)
+        self.ae(self.screen_lines(sn)[0].split(), ['alpha', '●'])
+        sn.scroll(100)
+        self.ae(sn.scroll_offset, 3)
+
+        # Lines past the last row keep the default background after a redraw,
+        # even when the previous render ended on the highlighted active tab.
+        sn.update(build_groups((tab(1, '/a', is_active=True),), repo_for))
+        self.ae(sn.scroll_offset, 0)
+        for y in range(3, sn.screen.lines):
+            self.ae(sn.screen.line(y).cursor_from(0).bg, 0, y)
+        self.assertNotEqual(sn.screen.line(2).cursor_from(0).bg, 0)
+        sn.update(groups)
+
+        # an unchanged model does not redraw
+        with patch.object(sn, 'render') as render:
+            sn.update(groups)
+            render.assert_not_called()
+
+    def test_layout_rejects_tiny_regions(self):
+        self.set_options({'side_nav_width': 20})
+        with (
+            patch('kitty.side_nav.cell_size_for_window', return_value=(10, 20)),
+            patch('kitty.side_nav.side_nav_region', return_value=region(0, 0, 0, 0)),
+            patch('kitty.side_nav.set_side_nav_render_data') as srd,
+        ):
+            sn = SideNav(1)
+            self.assertFalse(sn.layout())
+            srd.assert_not_called()

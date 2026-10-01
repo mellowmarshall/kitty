@@ -314,6 +314,7 @@ var AllColorSettingNames = map[string]bool{ // {{{
 	"scrollbar_track_color":                true,
 	"selection_background":                 true,
 	"selection_foreground":                 true,
+	"side_nav_background":                  true,
 	"tab_bar_background":                   true,
 	"tab_bar_margin_color":                 true,
 	"url_color":                            true,

@@ -978,7 +978,9 @@ class TabBar:
             available_width_for_left_margin = max(0, tab_bar.width - self.margin_width - cell_area_width)
             extra_width = max(0, tab_bar.width - 2 * self.margin_width - cell_area_width)
             left_margin = min(self.margin_width + extra_width // 2, available_width_for_left_margin)
-            self.window_geometry = g = WindowGeometry(left_margin, tab_bar.top, left_margin + cell_area_width, tab_bar.bottom, s.columns, s.lines)
+            # tab_bar.left is not zero when the side nav is on the left edge
+            left = tab_bar.left + left_margin
+            self.window_geometry = g = WindowGeometry(left, tab_bar.top, left + cell_area_width, tab_bar.bottom, s.columns, s.lines)
         self.laid_out_once = True
         self._last_viewport = (central, tab_bar, vw, vh)
         self.update_blank_rects(central, tab_bar, vw, vh)
