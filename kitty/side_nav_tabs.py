@@ -92,6 +92,7 @@ class SideNavController:
         self.nav = SideNav(self.os_window_id)
         self.repos = RepoCache()
         self.proc_cwds: dict[int, str] = {}
+        self.programs: dict[int, str] = {}
         self.proc_cwds_at = 0.0
         self.scroll_pending = 0.0
         # Windows that worked since the user last looked at them, they show as done
@@ -130,6 +131,13 @@ class SideNavController:
         if (cwd := self.proc_cwds.get(w.id)) is None:
             self.proc_cwds[w.id] = cwd = w.get_cwd_of_child() or ''
         return cwd
+
+    def program(self, w: 'Window') -> str:
+        # Reading the foreground program scans /proc, and updates come several
+        # times a second while titles animate, so reuse it like the cwd.
+        if (name := self.programs.get(w.id)) is None:
+            self.programs[w.id] = name = program_name(w.child.foreground_cmdline)
+        return name
 
     def group_key(self, tab: 'Tab') -> str:
         w = tab.active_window
@@ -171,6 +179,7 @@ class SideNavController:
     def update(self) -> None:
         if (now := monotonic()) - self.proc_cwds_at >= PROC_CWD_TTL:
             self.proc_cwds = {}
+            self.programs = {}
             self.proc_cwds_at = now
         tm = self.tm
         at = tm.active_tab
@@ -197,7 +206,7 @@ class SideNavController:
                         td.has_activity_since_last_focus,
                         most_urgent_agent_state(states),
                         cwd,
-                        program_name(w.child.foreground_cmdline) if w else '',
+                        self.program(w) if w else '',
                     )
                 )
                 keys.append((t.id, self.group_key(t)))
