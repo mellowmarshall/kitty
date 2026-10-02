@@ -794,6 +794,10 @@ class Window:
         self.child_title = self.default_title
         self.title_stack: Deque[str] = deque(maxlen=10)
         self.user_vars: dict[str, str] = {}
+        # The foreground process group when side_nav_cwd_var was set: the
+        # directory it holds is that program's, and no longer applies once
+        # another program is in the foreground
+        self.side_nav_cwd_pgrp = -1
         self.id: int = add_window(tab.os_window_id, tab.id, self.title)
         if not self.id:
             raise Exception(f'No tab with id: {tab.id} in OS Window: {tab.os_window_id} was found, or the window counter wrapped')
@@ -1358,6 +1362,8 @@ class Window:
         opts = get_options()
         if key and key in (opts.side_nav_state_var, opts.side_nav_cwd_var):
             mark_side_nav_dirty(self.os_window_id)
+            if key == opts.side_nav_cwd_var:
+                self.side_nav_cwd_pgrp = self.child.foreground_pgrp
         if len(self.user_vars) > 64:  # dont store too many user vars
             oldest_key = next(iter(self.user_vars))
             self.user_vars.pop(oldest_key)

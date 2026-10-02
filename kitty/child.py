@@ -696,6 +696,14 @@ class Child:
         os.killpg(pgrp, s)
         return True
 
+    @property
+    def foreground_pgrp(self) -> int:
+        "The foreground process group of the terminal, -1 when unknown"
+        try:
+            return os.tcgetpgrp(self.child_fd) if self.child_fd is not None else -1
+        except OSError:
+            return -1
+
     def reset_termios_state(self, when: int = termios.TCSANOW) -> None:
         if self.initial_termios_state is not None and self.child_fd is not None:
             try:

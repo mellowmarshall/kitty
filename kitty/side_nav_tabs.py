@@ -160,10 +160,17 @@ class SideNavController:
         """Where the window works: the directory its program reports in the user
         variable side_nav_cwd_var, such as an agent that works in another
         worktree than the one it started in, else the cwd of the window."""
-        # Only while a program runs: nothing clears the variable when it exits,
-        # and the shell it returns to may be anywhere. A program on another
-        # host reports paths of that host.
-        if (var := get_options().side_nav_cwd_var) and not w.child_is_remote and (reported := w.user_vars.get(var, '')) and self.program(w):
+        # Only while the program that set it is in the foreground: nothing
+        # clears the variable when that program exits, and the shell or the
+        # next program may be anywhere. A program on another host reports
+        # paths of that host.
+        if (
+            (var := get_options().side_nav_cwd_var)
+            and not w.child_is_remote
+            and (reported := w.user_vars.get(var, ''))
+            and w.side_nav_cwd_pgrp >= 0
+            and w.side_nav_cwd_pgrp == w.child.foreground_pgrp
+        ):
             if reported.startswith('file://'):
                 reported = path_from_osc7_url(reported) or ''
             if os.path.isabs(reported) and len(reported) <= MAX_PATH:
