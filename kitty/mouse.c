@@ -993,8 +993,15 @@ static void
 handle_side_nav_mouse(int button, int modifiers, int action) {
     set_currently_hovered_window(0, modifiers, false);
     OSWindow *w = global_state.callback_os_window;
-    // motion events are not reported, the side nav only reacts to clicks
-    if (w && button > -1) call_boss(handle_side_nav_mouse, "Kddiii", w->id, w->mouse_x, w->mouse_y, button, modifiers, action);
+    if (!w || button < 0) return;  // motion events are not reported, the side nav only reacts to clicks
+    if (button == GLFW_MOUSE_BUTTON_LEFT) {
+        // A release counts only when its press was in this side nav too: a drag
+        // that starts in a window or the tab bar can end over the side nav
+        if (action == GLFW_PRESS) global_state.side_nav_left_press = w->id;
+        else if (global_state.side_nav_left_press != w->id) return;
+        else global_state.side_nav_left_press = 0;
+    }
+    call_boss(handle_side_nav_mouse, "Kddiii", w->id, w->mouse_x, w->mouse_y, button, modifiers, action);
 }
 
 static bool
@@ -1342,6 +1349,8 @@ mouse_event(const int button, int modifiers, int action) {
     unsigned int window_idx = 0;
     Window *w = NULL;
     OSWindow *osw = global_state.callback_os_window;
+    // Any left press forgets an earlier one in the side nav; a press there sets it again
+    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) global_state.side_nav_left_press = 0;
 
     if (OPT(debug_keyboard)) {
         if (button < 0) {

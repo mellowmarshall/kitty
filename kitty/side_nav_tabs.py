@@ -13,8 +13,10 @@ from .child import cached_process_data
 from .fast_data_types import (
     GLFW_MOUSE_BUTTON_LEFT,
     GLFW_PRESS,
+    GLFW_RELEASE,
     add_timer,
     current_focused_os_window_id,
+    get_boss,
     get_options,
     mark_side_nav_dirty,
     monotonic,
@@ -24,6 +26,7 @@ from .fast_data_types import (
     side_nav_region,
 )
 from .side_nav import SideNav
+from .side_nav_arrange import group_order, saved_collapsed, tab_order_moving
 from .side_nav_model import SideNavTabInput, build_groups, group_key, most_urgent_agent_state
 from .side_nav_program import main_program, program_name
 from .side_nav_repo import RepoCache
@@ -126,6 +129,11 @@ class SideNavController:
         self.drag_from: tuple[int, int] | None = None
         self.drag_moved = False
         set_side_nav_cols(self.os_window_id, self.requested)
+        # Collapsed groups, the same in every OS window, and the group whose
+        # header the left button went down on with the tab that header stands
+        # for (None when it did not)
+        self.collapsed = saved_collapsed()
+        self.header_press: tuple[str, int] | None = None
 
     def sync_timer(self) -> None:
         # cwds, branches and program activity change without any tab event, so poll for them
@@ -264,7 +272,7 @@ class SideNavController:
         self.known_group_keys = {k: v for k, v in self.known_group_keys.items() if k in tab_ids}
         self.activity.forget_all_but(live)
         self.nav.ensure_laid_out()
-        self.nav.update(build_groups(entries, self.repos))
+        self.nav.update(build_groups(entries, self.repos), self.collapsed)
         if (group_keys := tuple(keys)) != self.last_group_keys:
             # A tab moved to another project, so the filtered tab bar changes too
             self.last_group_keys = group_keys
@@ -330,10 +338,66 @@ class SideNavController:
         return resized(self.cols, quality, increment, lowest_width(get_options().side_nav_width))
 
     def handle_mouse(self, x: float, y: float, button: int, modifiers: int, action: int) -> None:
-        if button != GLFW_MOUSE_BUTTON_LEFT or action != GLFW_PRESS:
+        if button != GLFW_MOUSE_BUTTON_LEFT:
             return
-        if (tab := self.tm.tab_for_id(self.nav.tab_id_at(y))) is not None:
-            self.tm.set_active_tab(tab)
+        if action == GLFW_PRESS:
+            self.header_press = None
+            row = self.nav.row_at(y)
+            if row is not None and row.kind == 'group' and row.group is not None:
+                if self.nav.on_arrow(x):
+                    get_boss().set_side_nav_group_collapsed(row.group.key, row.group.key not in self.collapsed)
+                else:
+                    # A click selects the project, a drag moves it: decided on release
+                    self.header_press = row.group.key, row.tab_id
+            elif row is not None and (tab := self.tm.tab_for_id(row.tab_id)) is not None:
+                self.tm.set_active_tab(tab)
+        elif action == GLFW_RELEASE and self.header_press is not None:
+            (key, tab_id), self.header_press = self.header_press, None
+            target = self.nav.group_at_or_after(y)
+            order = group_order(self.tab_keys())
+            if target == key or key not in order:
+                if (tab := self.tm.tab_for_id(tab_id)) is not None:
+                    self.tm.set_active_tab(tab)  # selects the project
+            elif target is None:
+                self.move_group(key, len(order) - 1)  # dropped below the last group
+            elif target in order:
+                self.move_group(key, order.index(target))
+
+    def tab_keys(self) -> list[tuple[int, str]]:
+        "The tabs the side nav lists, with their groups"
+        return [(t.id, self.group_key(t)) for t in self.tm.tabs_matching_tab_bar_filter]
+
+    def move_group(self, key: str, to_index: int) -> None:
+        """Move the group to a position among the groups the side nav lists. Its
+        tabs move as one block; tabs the side nav does not list stay where they are."""
+        tm = self.tm
+        keys = self.tab_keys()
+        ids = tab_order_moving(keys, key, to_index)
+        if ids == [tab_id for tab_id, _ in keys]:
+            return
+        at = tm.active_tab
+        tm.apply_tab_ordering(ids)
+        # Reordering leaves the active index on whichever tab now holds it
+        if at is not None:
+            tm._set_active_tab(tm.tabs.index(at), store_in_history=False)
+        tm.layout_tab_bar()
+        tm.mark_tab_bar_dirty()
+        self.update()
+        mark_side_nav_dirty(self.os_window_id)
+
+    def move_active_group(self, delta: int) -> None:
+        if (at := self.tm.active_tab) is None or not self.is_visible:
+            return
+        key = self.group_key(at)
+        order = group_order(self.tab_keys())
+        if 0 <= (to := order.index(key) + delta) < len(order):
+            self.move_group(key, to)
+
+    def set_collapsed(self, collapsed: frozenset[str]) -> None:
+        self.collapsed = collapsed
+        if self.is_visible:  # a hidden side nav catches up on its next update
+            self.update()
+            mark_side_nav_dirty(self.os_window_id)
 
     def handle_scroll(self, offset: float, offset_type: int) -> None:
         # offset_type is GLFWOffsetType: 0 lines, 1 v120 (120 per wheel detent), 2 pixels

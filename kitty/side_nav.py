@@ -25,6 +25,8 @@ from .tab_bar import as_rgb, truncate_line
 from .utils import color_as_int
 
 control_chars = re.compile(r'[\x00-\x1f\x7f-\x9f]')
+# The columns of a group header that collapse it when clicked: the marker and the arrow
+ARROW_COLS = 3
 
 
 def region_key(r: Region) -> tuple[int, int, int, int]:
@@ -85,11 +87,12 @@ class SideNav:
         self.groups: tuple[SideNavGroup, ...] = ()
         self.rows: tuple[SideNavRow, ...] = ()
         self.scroll_offset = 0
-        self.top = 0
+        self.top = self.left = 0
         # Lines that are fully inside the region, scrolling uses these so the
         # active row never lands on the clipped last line.
         self.visible_lines = 1
         # The active tab, and whether it shows a branch row
+        self.collapsed: frozenset[str] = frozenset()
         self.active_tab_id: tuple[int, bool] = (0, False)
         self.laid_out_region: tuple[int, int, int, int] = (0, 0, 0, 0)
         self.cell_width, self.cell_height = cell_size_for_window(os_window_id)
@@ -118,7 +121,7 @@ class SideNav:
         if s.lines != lines or s.columns != cols:
             s.resize(lines, cols)
             s.reset_mode(DECAWM)
-        self.top = r.top
+        self.top, self.left = r.top, r.left
         visible_lines = max(1, r.height // ch)
         if visible_lines != self.visible_lines:
             # A resize or font change can push the active row out of view, or
@@ -135,12 +138,12 @@ class SideNav:
         if region_key(side_nav_region(self.os_window_id)) != self.laid_out_region:
             self.layout()
 
-    def update(self, groups: tuple[SideNavGroup, ...]) -> None:
-        if groups == self.groups:
+    def update(self, groups: tuple[SideNavGroup, ...], collapsed: frozenset[str] = frozenset()) -> None:
+        if groups == self.groups and collapsed == self.collapsed:
             return
-        self.groups = groups
-        self.rows = rows_for_groups(groups)
-        active = next(((t.tab_id, bool(t.branch)) for g in groups for t in g.tabs if t.is_active), (0, False))
+        self.groups, self.collapsed = groups, collapsed
+        self.rows = rows_for_groups(groups, collapsed)
+        active = next(((t.tab_id, bool(t.branch) and g.key not in collapsed) for g in groups for t in g.tabs if t.is_active), (0, False))
         # Only follow the active tab when it changes, or gains or loses its
         # branch row, so that title and state updates do not undo a scroll
         # the user made.
@@ -155,6 +158,8 @@ class SideNav:
         lines = self.visible_lines
         # The active tab's rows: its own and, under it, its branch
         active = [i for i, row in enumerate(self.rows) if row.kind in ('tab', 'branch') and row.tab is not None and row.tab.is_active]
+        # In a collapsed group, its header stands for the active tab
+        active = active or [i for i, row in enumerate(self.rows) if row.kind == 'group' and row.group is not None and row.group.is_active]
         if active:
             first, last = active[0], active[-1]
             if first < self.scroll_offset:
@@ -174,12 +179,27 @@ class SideNav:
         if before != self.scroll_offset:
             self.render()
 
-    def tab_id_at(self, y: float) -> int:
+    def row_at(self, y: float) -> SideNavRow | None:
         line = int(y - self.top) // max(1, self.cell_height)
         idx = self.scroll_offset + line
         if 0 <= line < self.screen.lines and 0 <= idx < len(self.rows):
-            return self.rows[idx].tab_id
-        return 0
+            return self.rows[idx]
+        return None
+
+    def group_at_or_after(self, y: float) -> str | None:
+        "The group of the row at y, or of the next group after a blank row, None past the last group"
+        line = int(y - self.top) // max(1, self.cell_height)
+        for row in self.rows[max(0, self.scroll_offset + line) :]:
+            if row.group is not None:
+                return row.group.key
+        return None
+
+    def tab_id_at(self, y: float) -> int:
+        return row.tab_id if (row := self.row_at(y)) is not None else 0
+
+    def on_arrow(self, x: float) -> bool:
+        "True when x is on the arrow of a group header, which collapses the group"
+        return 0 <= int(x - self.left) // max(1, self.cell_width) < ARROW_COLS
 
     def render(self) -> None:
         s = self.screen
@@ -215,10 +235,17 @@ class SideNav:
             return
         g = row.group
         if row.kind == 'group':
+            collapsed = g.key in self.collapsed
             self.fill_line(line, c.bg)
             self.draw_text('▌' if g.is_active else ' ', c.accent, c.bg)
-            self.draw_text(g.name, c.header_fg, c.bg, bold=True)
-            badge, badge_fg = self.group_badge(g)
+            self.draw_text('▸ ' if collapsed else '▾ ', c.dim_fg, c.bg)
+            badge, badge_fg = self.group_badge(g, collapsed)
+            count = f' {len(g.tabs)}' if collapsed else ''
+            # The count and the badge keep their place; a long name is cut
+            room = width - ARROW_COLS - len(count) - (wcswidth(badge) + 2 if badge else 0)
+            self.draw_text(fit(control_chars.sub('', g.name), max(1, room)), c.header_fg, c.bg, bold=True)
+            if count:
+                self.draw_text(count, c.dim_fg, c.bg)
             if badge:
                 self.draw_badge(line, badge, badge_fg, c.bg)
         elif row.kind == 'branch' and row.tab is not None:
@@ -270,10 +297,11 @@ class SideNav:
             return '•', c.activity
         return '', 0
 
-    def group_badge(self, g: SideNavGroup) -> tuple[str, int]:
-        # A collapsed glance at the group: its most urgent agent, then any bell.
+    def group_badge(self, g: SideNavGroup, collapsed: bool = False) -> tuple[str, int]:
+        # A glance at the group: its most urgent agent, then any bell. A
+        # collapsed group shows working and done too, since its tabs do not.
         state = most_urgent_agent_state(t.agent_state for t in g.tabs)
-        if state in ('blocked', 'waiting'):
+        if state in (('blocked', 'waiting', 'working', 'done') if collapsed else ('blocked', 'waiting')):
             return self.colors.agent[state]
         if any(t.needs_attention for t in g.tabs):
             return '!', self.colors.attention

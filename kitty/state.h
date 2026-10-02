@@ -676,6 +676,9 @@ typedef struct GlobalState {
     // and how far the border was from the pointer when the drag started
     id_type side_nav_being_resized;
     double side_nav_drag_offset;
+    // The OS window whose side nav the left button last went down in, zero
+    // when it last went down anywhere else
+    id_type side_nav_left_press;
     struct {
         uint32_t texture_id, framebuffer_id, texture_generation;
         int width, height;

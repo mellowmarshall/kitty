@@ -271,7 +271,7 @@ class TestSideNav(BaseTest):
         self.ae(sn.scroll_offset, 4)
         lines = self.screen_lines(sn)
         self.ae(lines[0], '')
-        self.ae(lines[1].strip(), '▌beta')
+        self.ae(lines[1].strip(), '▌▾ beta')
         self.ae(lines[2].split(), ['1', 'logs'])
         # the program sits at the right of a title that does not name it
         self.ae(lines[3].split()[-2:], ['lon…', 'vim'])
@@ -292,7 +292,7 @@ class TestSideNav(BaseTest):
         sn.scroll(-100)
         self.ae(sn.scroll_offset, 0)
         lines = self.screen_lines(sn)
-        self.ae(lines[0].split(), ['alpha', '●'])
+        self.ae(lines[0].split(), ['▾', 'alpha', '●'])
         self.ae(lines[2].split()[:2], ['2', 'claude'])
         self.assertTrue(lines[2].endswith('●'))
         self.ae(lines[3].strip(), '└ main')
@@ -337,6 +337,24 @@ class TestSideNav(BaseTest):
         sn.update(groups(5, 'logs updated'))
         self.ae(sn.scroll_offset, 3)
 
+    def test_a_collapsed_group_shows_only_its_header(self):
+        sn = self.side_nav(height=200)
+        repo_for = {'/a': RepoInfo('/a', 'alpha', 'main', False, '/a/.git'), '/b': RepoInfo('/b', 'beta', 'dev', False, '/b/.git')}.get
+        groups = build_groups((tab(1, '/a', program='vim'), tab(2, '/a', agent_state='working'), tab(3, '/b', is_active=True)), repo_for)
+        sn.update(groups, frozenset({'/a/.git'}))
+        self.ae([(r.kind, r.tab_id) for r in sn.rows], [('group', 1), ('blank', 0), ('group', 3), ('tab', 3)])
+        lines = self.screen_lines(sn)
+        # arrow, name, number of tabs, and the state of a tab that is hidden
+        self.ae(lines[0].split(), ['▸', 'alpha', '2', '◐'])
+        self.ae(lines[2].split(), ['▌▾', 'beta'])
+        # the arrow columns collapse; the name selects
+        self.assertTrue(sn.on_arrow(0) and sn.on_arrow(25))
+        self.assertFalse(sn.on_arrow(35))
+        self.ae(sn.row_at(5).kind, 'group')
+        # expanded again, its tabs return
+        sn.update(groups)
+        self.ae(len(sn.rows), 7)
+
     def test_a_late_branch_row_scrolls_into_view(self):
         sn = self.side_nav(height=60)  # 3 lines
         repo_for = {'/a': RepoInfo('/a', 'alpha', 'main')}.get
@@ -378,7 +396,7 @@ class TestSideNav(BaseTest):
         groups = build_groups((tab(1, '/a', 'one\ntwo\rthree\x1b[31m', is_active=True, program='v\x07im'),), lambda cwd: RepoInfo(cwd, 'x\ny', 'b\x08r'))
         sn.update(groups)
         lines = self.screen_lines(sn)
-        self.ae(lines[0].strip(), '▌xy')
+        self.ae(lines[0].strip(), '▌▾ xy')
         # the title fits by its drawn width, so the program keeps its place
         self.ae(lines[1].split(), ['1', 'onetwothre…', 'vim'])
         self.ae(lines[2].strip(), '└ br')
@@ -523,3 +541,170 @@ class TestStateVar(BaseTest):
         self.ae(c.window_state(w, False, 100.0), '')
         self.set_options({'side_nav_state_var': 'agent_state'})
         self.ae(c.window_state(w, False, 100.0), 'waiting')
+
+
+class TestArrange(BaseTest):
+    def test_moving_a_group_moves_its_tabs_as_one_block(self):
+        from kitty.side_nav_arrange import group_order, tab_order_moving
+
+        keys = [(1, 'a'), (2, 'b'), (3, 'a'), (4, 'c'), (5, 'b')]
+        self.ae(group_order(keys), ['a', 'b', 'c'])
+        self.ae(tab_order_moving(keys, 'c', 0), [4, 1, 3, 2, 5])
+        self.ae(tab_order_moving(keys, 'a', 2), [2, 5, 4, 1, 3])
+        self.ae(tab_order_moving(keys, 'b', 99), [1, 3, 4, 2, 5])  # past the end goes last
+        self.ae(tab_order_moving(keys, 'b', -3), [2, 5, 1, 3, 4])
+        self.ae(tab_order_moving(keys, 'zzz', 0), [1, 2, 3, 4, 5])  # an unknown group changes nothing
+        self.ae(tab_order_moving([], 'a', 0), [])
+
+    def test_collapsed_groups_are_saved(self):
+        from kitty import side_nav_arrange as sna
+
+        with tempfile.TemporaryDirectory() as tdir, patch.object(sna, 'collapsed_path', lambda: os.path.join(tdir, 'c.json')):
+            self.ae(sna.saved_collapsed(), frozenset())
+            sna.save_collapsed({'/r/a/.git', '/r/b/.git'})
+            self.ae(sna.saved_collapsed(), frozenset({'/r/a/.git', '/r/b/.git'}))
+            sna.save_collapsed(set())
+            self.assertFalse(os.path.exists(sna.collapsed_path()))
+            write(sna.collapsed_path(), '{"collapsed": [1, "", "/ok/.git"]}')
+            self.ae(sna.saved_collapsed(), frozenset({'', '/ok/.git'}))  # '' is the group outside repositories
+            write(sna.collapsed_path(), '{"collapsed": "nope"}')
+            self.ae(sna.saved_collapsed(), frozenset())
+
+    def test_action_arguments(self):
+        from kitty.options.utils import move_side_nav_group
+
+        self.ae(move_side_nav_group('move_side_nav_group', 'down'), ('move_side_nav_group', ['down']))
+        self.ae(move_side_nav_group('move_side_nav_group', ''), ('move_side_nav_group', ['up']))
+        with patch('kitty.options.utils.log_error'):
+            self.ae(move_side_nav_group('move_side_nav_group', 'sideways'), ('move_side_nav_group', ['up']))
+
+
+class FakeTab:
+    def __init__(self, tab_id: int, key: str, shown: bool = True):
+        self.id, self.key, self.shown = tab_id, key, shown
+
+
+class FakeTabManager:
+    def __init__(self, tabs: list[FakeTab], active: int):
+        self.tabs, self.active = tabs, active
+        self.history: list[int] = []
+
+    @property
+    def tabs_matching_tab_bar_filter(self):
+        return [t for t in self.tabs if t.shown]
+
+    @property
+    def active_tab(self):
+        return self.tab_for_id(self.active)
+
+    def tab_for_id(self, tab_id: int):
+        return next((t for t in self.tabs if t.id == tab_id), None)
+
+    def set_active_tab(self, tab) -> None:
+        self.history.append(self.active)
+        self.active = tab.id
+
+    def _set_active_tab(self, idx: int, store_in_history: bool = True) -> None:
+        self.active = self.tabs[idx].id
+
+    def apply_tab_ordering(self, ids) -> None:
+        # as TabManager does: only the positions of the given tabs change
+        by_id = {t.id: t for t in self.tabs}
+        positions = [i for i, t in enumerate(self.tabs) if t.id in set(ids)]
+        for pos, tab_id in zip(positions, ids):
+            self.tabs[pos] = by_id[tab_id]
+
+    def layout_tab_bar(self) -> None:
+        pass
+
+    def mark_tab_bar_dirty(self) -> None:
+        pass
+
+
+class TestGroupMouseAndKeys(BaseTest):
+    def controller(self, tabs: list[FakeTab], active: int):
+        from kitty.side_nav_tabs import SideNavController
+
+        c = SideNavController.__new__(SideNavController)
+        c.tm = FakeTabManager(tabs, active)
+        c.os_window_id, c.collapsed, c.header_press = 1, frozenset(), None
+        c.group_key = lambda t: t.key
+        c.update = lambda: None
+        return c
+
+    def order(self, c) -> list[int]:
+        return [t.id for t in c.tm.tabs]
+
+    def test_keys_move_the_active_group_and_stop_at_the_ends(self):
+        c = self.controller([FakeTab(1, 'a'), FakeTab(2, 'b'), FakeTab(3, 'c')], active=3)
+        with patch.object(type(c), 'is_visible', True), patch('kitty.side_nav_tabs.mark_side_nav_dirty'):
+            c.move_active_group(-1)
+            self.ae((self.order(c), c.tm.active), ([1, 3, 2], 3))
+            c.move_active_group(-1)
+            c.move_active_group(-1)  # already first
+            self.ae(self.order(c), [3, 1, 2])
+            self.ae(c.tm.history, [])  # moving is not a change of the active tab
+        with patch.object(type(c), 'is_visible', False):
+            c.move_active_group(1)  # a hidden side nav moves nothing
+            self.ae(self.order(c), [3, 1, 2])
+
+    def test_hidden_tabs_stay_and_do_not_count_as_a_position(self):
+        # the side nav lists a, b, c; the hidden tab of group h sits between them
+        c = self.controller([FakeTab(1, 'a'), FakeTab(9, 'h', shown=False), FakeTab(2, 'b'), FakeTab(3, 'c')], active=3)
+        with patch.object(type(c), 'is_visible', True), patch('kitty.side_nav_tabs.mark_side_nav_dirty'):
+            c.move_active_group(-1)  # one press is one visible step
+            self.ae(self.order(c), [1, 9, 3, 2])
+
+    def test_header_press_and_release(self):
+        from kitty.fast_data_types import GLFW_MOUSE_BUTTON_LEFT as LEFT
+        from kitty.fast_data_types import GLFW_PRESS, GLFW_RELEASE
+
+        c = self.controller([FakeTab(1, 'a'), FakeTab(2, 'b'), FakeTab(3, 'c')], active=1)
+        rows = {0: ('a', 1), 2: ('b', 2), 3: (None, 0), 4: ('c', 3), 9: None}
+
+        class Nav:
+            def row_at(self, y):
+                g = rows.get(int(y))
+                return None if g is None else SimpleRow(*g)
+
+            def on_arrow(self, x):
+                return x < 3
+
+            def group_at_or_after(self, y):
+                for line in sorted(rows):
+                    if line >= int(y) and rows[line] and rows[line][0]:
+                        return rows[line][0]
+                return None
+
+        c.nav = Nav()
+        with patch('kitty.side_nav_tabs.mark_side_nav_dirty'):
+            # press and release on the same header: select its project
+            c.handle_mouse(10, 2, LEFT, 0, GLFW_PRESS)
+            c.handle_mouse(10, 2, LEFT, 0, GLFW_RELEASE)
+            self.ae((self.order(c), c.tm.active), ([1, 2, 3], 2))
+            # drag a onto c: a takes c's place
+            c.handle_mouse(10, 0, LEFT, 0, GLFW_PRESS)
+            c.handle_mouse(10, 4, LEFT, 0, GLFW_RELEASE)
+            self.ae((self.order(c), c.tm.active), ([2, 3, 1], 2))
+            # a release on a blank row goes to the next group, below the last to the end
+            c.handle_mouse(10, 4, LEFT, 0, GLFW_PRESS)  # rows are fixed here: line 4 is c's header
+            c.handle_mouse(10, 3, LEFT, 0, GLFW_RELEASE)
+            self.ae(self.order(c), [2, 3, 1])  # c onto itself (the next group) changes nothing
+            c.handle_mouse(10, 2, LEFT, 0, GLFW_PRESS)  # b, now first
+            c.handle_mouse(10, 9, LEFT, 0, GLFW_RELEASE)
+            self.ae(self.order(c), [3, 1, 2])
+            # a release with no press in the side nav does nothing
+            c.handle_mouse(10, 4, LEFT, 0, GLFW_RELEASE)
+            self.ae(self.order(c), [3, 1, 2])
+            # the arrow collapses, through the boss for every OS window
+            with patch('kitty.side_nav_tabs.get_boss') as boss:
+                c.handle_mouse(1, 2, LEFT, 0, GLFW_PRESS)
+            boss().set_side_nav_group_collapsed.assert_called_once_with('b', True)
+            self.assertIsNone(c.header_press)
+
+
+class SimpleRow:
+    def __init__(self, key, tab_id):
+        self.kind = 'group' if key else 'blank'
+        self.tab_id = tab_id
+        self.group = type('G', (), {'key': key})() if key else None
