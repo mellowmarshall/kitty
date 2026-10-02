@@ -11,6 +11,7 @@ from kitty.side_nav import (
     SideNavTabInput,
     build_groups,
     most_urgent_agent_state,
+    program_name,
     rows_for_groups,
 )
 from kitty.side_nav_repo import RepoCache, RepoInfo, find_repo, shorten_path
@@ -133,6 +134,19 @@ class TestSideNav(BaseTest):
         self.assertFalse(t.is_working(7, 0.1, 5.0, 80.0))
         t.forget_all_but({2})
         self.ae(set(t.streaks), {2})
+
+    def test_program_name(self):
+        for cmdline, expected in (
+            (['/home/u/.local/bin/claude', '--resume', 'x'], 'claude'),
+            (['/home/u/.nvm/versions/node/v24/bin/node', '/opt/codex/bin/codex.js', '--yolo'], 'codex'),
+            (['python3.12', '-u', 'server.py'], 'server'),
+            (['-bash'], ''),
+            (['/usr/bin/zsh', '-i'], ''),
+            (['nvim', 'notes.md'], 'nvim'),
+            (['node'], 'node'),
+            ([], ''),
+        ):
+            self.ae(program_name(cmdline), expected, cmdline)
 
     def test_shorten_path(self):
         self.ae(shorten_path('/home/u', '/home/u'), '~')
