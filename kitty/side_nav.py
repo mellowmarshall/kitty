@@ -7,9 +7,7 @@
 # window in C (os_window_side_nav_region), exactly like the tab bar does.
 
 import re
-from collections import defaultdict, deque
-from collections.abc import Callable, Iterable, Sequence
-from typing import Literal, NamedTuple
+from typing import NamedTuple
 
 from .fast_data_types import (
     DECAWM,
@@ -22,186 +20,15 @@ from .fast_data_types import (
     side_nav_region,
     wcswidth,
 )
-from .side_nav_repo import RepoInfo, find_repo, shorten_path
+from .side_nav_model import SideNavGroup, SideNavRow, SideNavTab, most_urgent_agent_state, rows_for_groups
 from .tab_bar import as_rgb, truncate_line
 from .utils import color_as_int
 
-# Agent states that hooks report with: kitten @ set-user-vars agent_state=<state>
-# Ordered from most to least urgent, so a tab shows its most urgent window.
-AGENT_STATE_PRIORITY = ('blocked', 'waiting', 'working', 'done')
 control_chars = re.compile(r'[\x00-\x1f\x7f-\x9f]')
-
-
-class SideNavTabInput(NamedTuple):
-    tab_id: int
-    title: str
-    is_active: bool
-    needs_attention: bool
-    has_activity: bool
-    agent_state: str
-    cwd: str
-    program: str = ''  # the program in the foreground of the active window, '' for a shell
-
-
-class SideNavTab(NamedTuple):
-    tab_id: int
-    index: int  # the 1-based position in the tab bar while this project is selected
-    title: str
-    is_active: bool
-    needs_attention: bool
-    has_activity: bool
-    agent_state: str
-    program: str = ''
-
-
-class SideNavGroup(NamedTuple):
-    key: str  # the repo root, or '' for tabs that are not in a repository
-    name: str
-    detail: str
-    is_active: bool
-    tabs: tuple[SideNavTab, ...]
-
-
-class SideNavRow(NamedTuple):
-    kind: Literal['group', 'detail', 'tab', 'blank']
-    tab_id: int  # the tab a click on this row focuses, 0 for none
-    group: SideNavGroup | None = None
-    tab: SideNavTab | None = None
-
-
-def most_urgent_agent_state(states: Iterable[str]) -> str:
-    present = {s.lower() for s in states if s}
-    for state in AGENT_STATE_PRIORITY:
-        if state in present:
-            return state
-    return ''
-
-
-def build_groups(entries: Iterable[SideNavTabInput], repo_for: Callable[[str], RepoInfo | None] = find_repo) -> tuple[SideNavGroup, ...]:
-    # Groups keep the order in which their first tab appears in the tab bar,
-    # so the side nav reads in the same order as the tabs.
-    order: list[str] = []
-    repos: dict[str, RepoInfo | None] = {}
-    members: dict[str, list[SideNavTab]] = {}
-    repo_cache: dict[str, RepoInfo | None] = {}
-    for e in entries:
-        if e.cwd not in repo_cache:
-            repo_cache[e.cwd] = repo_for(e.cwd)
-        repo = repo_cache[e.cwd]
-        key = repo.root if repo else ''
-        if key not in members:
-            order.append(key)
-            members[key] = []
-            repos[key] = repo
-        members[key].append(SideNavTab(e.tab_id, len(members[key]) + 1, e.title, e.is_active, e.needs_attention, e.has_activity, e.agent_state, e.program))
-    groups = []
-    for key in order:
-        repo = repos[key]
-        tabs = tuple(members[key])
-        if repo is None:
-            name, detail = 'other', ''
-        else:
-            name = repo.name
-            detail = f'{repo.branch} · {shorten_path(repo.root)}' if repo.branch else shorten_path(repo.root)
-        groups.append(SideNavGroup(key, name, detail, any(t.is_active for t in tabs), tabs))
-    return tuple(groups)
-
-
-def rows_for_groups(groups: Sequence[SideNavGroup]) -> tuple[SideNavRow, ...]:
-    rows: list[SideNavRow] = []
-    for i, g in enumerate(groups):
-        first_tab = g.tabs[0].tab_id if g.tabs else 0
-        if i:
-            rows.append(SideNavRow('blank', 0))
-        rows.append(SideNavRow('group', first_tab, g))
-        if g.detail:
-            rows.append(SideNavRow('detail', first_tab, g))
-        rows.extend(SideNavRow('tab', t.tab_id, g, t) for t in g.tabs)
-    return tuple(rows)
 
 
 def region_key(r: Region) -> tuple[int, int, int, int]:
     return r.left, r.top, r.right, r.bottom
-
-
-SHELLS = frozenset({'bash', 'zsh', 'fish', 'sh', 'dash', 'ksh', 'tcsh', 'nu', 'xonsh'})
-INTERPRETERS = frozenset({
-    'node', 'nodejs', 'python', 'pypy', 'bun', 'deno', 'ruby', 'perl', 'php', 'lua', 'luajit', 'tsx', 'ts-node',
-})  # fmt: skip
-# Commands that run another command named later on their command line.
-WRAPPERS = frozenset({'sudo', 'doas', 'env', 'nice', 'ionice', 'nohup', 'time', 'stdbuf', 'chrt', 'taskset'})
-# Interpreter options whose next argument is a value, not the script.
-VALUE_OPTIONS = frozenset({'-W', '-X', '-r', '--require', '--import', '--loader', '-I', '--experimental-loader'})
-# Script names that say nothing on their own; the directory names the program.
-GENERIC_SCRIPTS = frozenset({'cli', 'index', 'main', '__main__', 'run', 'bin', 'app', 'start'})
-
-
-def _base(path: str) -> str:
-    name = path.rsplit('/', 1)[-1].lstrip('-')
-    return re.sub(r'(?<=[a-z])[-.]?[0-9][0-9.]*$', '', name)  # python3.12, zsh-5.9
-
-
-def program_name(cmdline: Sequence[str]) -> str:
-    """A short name for the program a command line runs, '' for a shell.
-
-    Interpreters name their script, so an npm-installed codex shows as codex
-    rather than node; wrappers such as sudo or env name what they run."""
-    args = list(cmdline)
-    if len(args) == 1 and ' ' in args[0]:
-        args = args[0].split()  # a process that rewrote its own title
-    while args and _base(args[0]) in WRAPPERS:
-        args = args[1:]
-        while args and (args[0].startswith('-') or '=' in args[0]):
-            args = args[1:]
-    if not args:
-        return ''
-    base = _base(args[0])
-    if base in SHELLS:
-        return ''
-    if base not in INTERPRETERS:
-        return args[0].rsplit('/', 1)[-1].lstrip('-')
-    rest = args[1:]
-    index = 0
-    while index < len(rest):
-        arg = rest[index]
-        if arg in ('-c', '-e', '--eval', '-p', '--print'):
-            return base  # inline code, no script to name
-        if arg == '-m' and index + 1 < len(rest):
-            return rest[index + 1].split('.')[0]
-        if arg in VALUE_OPTIONS:
-            index += 2
-            continue
-        if arg.startswith('-'):
-            index += 1
-            continue
-        parts = arg.split('/')
-        script = re.sub(r'\.(m?js|cjs|ts|py|rb|pl|php|lua)$', '', parts[-1])
-        if script in GENERIC_SCRIPTS and len(parts) > 1:
-            # .../codex/bin/index.js names codex; skip generic directories too
-            for part in reversed(parts[:-1]):
-                if part and part not in GENERIC_SCRIPTS and part not in ('dist', 'lib', 'src', 'build', 'node_modules'):
-                    return part
-        return script
-    return base
-
-
-def main_program(processes: Iterable[tuple[int, int, Sequence[str]]]) -> str:
-    """The program that names a window, from (pid, parent pid, command line) of
-    its foreground process group: the topmost one that is not a shell. Helpers
-    that program started, such as the MCP servers of an agent, do not."""
-    procs = sorted(processes)
-    pids = {pid for pid, _, _ in procs}
-    roots: list[tuple[int, Sequence[str]]] = []
-    children: defaultdict[int, list[tuple[int, Sequence[str]]]] = defaultdict(list)
-    for pid, ppid, cmdline in procs:
-        (children[ppid] if ppid in pids else roots).append((pid, cmdline))
-    queue = deque(roots)
-    while queue:
-        pid, cmdline = queue.popleft()
-        if name := program_name(cmdline):
-            return name
-        queue.extend(children[pid])
-    return ''
 
 
 def names_program(title: str, program: str) -> bool:
@@ -262,7 +89,8 @@ class SideNav:
         # Lines that are fully inside the region, scrolling uses these so the
         # active row never lands on the clipped last line.
         self.visible_lines = 1
-        self.active_tab_id = 0
+        # The active tab, and whether it shows a branch row
+        self.active_tab_id: tuple[int, bool] = (0, False)
         self.laid_out_region: tuple[int, int, int, int] = (0, 0, 0, 0)
         self.cell_width, self.cell_height = cell_size_for_window(os_window_id)
         self.screen = Screen(None, 1, 10, 0, self.cell_width, self.cell_height)
@@ -312,9 +140,10 @@ class SideNav:
             return
         self.groups = groups
         self.rows = rows_for_groups(groups)
-        active = next((t.tab_id for g in groups for t in g.tabs if t.is_active), 0)
-        # Only follow the active tab when it changes, so that title and agent
-        # updates do not undo a scroll the user made.
+        active = next(((t.tab_id, bool(t.branch)) for g in groups for t in g.tabs if t.is_active), (0, False))
+        # Only follow the active tab when it changes, or gains or loses its
+        # branch row, so that title and state updates do not undo a scroll
+        # the user made.
         if active != self.active_tab_id:
             self.active_tab_id = active
             self.keep_active_tab_visible()
@@ -324,13 +153,15 @@ class SideNav:
 
     def keep_active_tab_visible(self) -> None:
         lines = self.visible_lines
-        for i, row in enumerate(self.rows):
-            if row.kind == 'tab' and row.tab is not None and row.tab.is_active:
-                if i < self.scroll_offset:
-                    self.scroll_offset = i
-                elif i >= self.scroll_offset + lines:
-                    self.scroll_offset = i - lines + 1
-                break
+        # The active tab's rows: its own and, under it, its branch
+        active = [i for i, row in enumerate(self.rows) if row.kind in ('tab', 'branch') and row.tab is not None and row.tab.is_active]
+        if active:
+            first, last = active[0], active[-1]
+            if first < self.scroll_offset:
+                self.scroll_offset = first
+            elif last >= self.scroll_offset + lines:
+                # its branch too, but never past the tab itself
+                self.scroll_offset = min(first, last - lines + 1)
         self.clamp_scroll()
 
     def clamp_scroll(self) -> None:
@@ -390,9 +221,13 @@ class SideNav:
             badge, badge_fg = self.group_badge(g)
             if badge:
                 self.draw_badge(line, badge, badge_fg, c.bg)
-        elif row.kind == 'detail':
-            self.fill_line(line, c.bg)
-            self.draw_text('  ' + g.detail, c.dim_fg, c.bg)
+        elif row.kind == 'branch' and row.tab is not None:
+            # Under its tab, in the tab's colors, so that the two read as one item
+            t = row.tab
+            bg = c.active_bg if t.is_active else c.bg
+            self.fill_line(line, bg)
+            self.draw_text('    └ ', c.dim_fg if not t.is_active else c.active_fg, bg)
+            self.draw_text(t.branch, c.dim_fg if not t.is_active else c.active_fg, bg)
         elif row.tab is not None:
             t = row.tab
             bg = c.active_bg if t.is_active else c.bg
@@ -410,7 +245,8 @@ class SideNav:
             # one column of gap between the title and the program, one before the badge
             title_room = max(1, room - (program_width + 2 if program_width else 0))
             self.draw_text(prefix, c.dim_fg if not t.is_active else fg, bg)
-            self.draw_text(fit(t.title, title_room), fg, bg, bold=t.is_active)
+            # Control characters go before fitting, so that they do not count as width
+            self.draw_text(fit(control_chars.sub('', t.title), title_room), fg, bg, bold=t.is_active)
             if program_width:
                 s.cursor.x, s.cursor.y = width - badge_width - program_width - 1, line
                 self.draw_text(fit(program, program_width), c.dim_fg, bg)

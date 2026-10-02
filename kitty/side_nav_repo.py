@@ -12,10 +12,13 @@ from typing import NamedTuple
 
 
 class RepoInfo(NamedTuple):
-    root: str  # the top of the working tree, the grouping key in the side nav
+    root: str  # the top of the working tree
     name: str  # the name of the main repository, the same for all its worktrees
     branch: str  # the branch name, or a short commit hash when HEAD is detached
     is_worktree: bool = False
+    # The main repository's git dir, the same for all its worktrees: the
+    # grouping key in the side nav
+    main: str = ''
 
 
 def _read_first_line(path: str) -> str:
@@ -46,28 +49,32 @@ def _branch_from_head(gitdir: str) -> str:
     return head[:8]
 
 
-def _main_repo_name(root: str, gitdir: str) -> tuple[str, bool]:
+def _main_repo(root: str, gitdir: str) -> tuple[str, str, bool]:
+    "The main repository's name and git dir, and whether root is a linked worktree"
     # A linked worktree's git dir has a commondir file pointing at the main
     # repository's .git, so its worktrees all group under the same name.
     common = _read_first_line(os.path.join(gitdir, 'commondir'))
     if common:
-        common_dir = os.path.normpath(os.path.join(gitdir, common))
+        common_dir = os.path.realpath(os.path.join(gitdir, common))
         if os.path.basename(common_dir) == '.git':
-            return os.path.basename(os.path.dirname(common_dir)), True
-        return os.path.basename(common_dir).removesuffix('.git'), True
-    return os.path.basename(root), False
+            return os.path.basename(os.path.dirname(common_dir)), common_dir, True
+        return os.path.basename(common_dir).removesuffix('.git'), common_dir, True
+    return os.path.basename(root), os.path.realpath(gitdir), False
 
 
 def find_repo(cwd: str) -> RepoInfo | None:
     if not cwd or not os.path.isabs(cwd):
         return None
-    path = os.path.normpath(cwd)
+    # The real path: a shell reports the path it was given, which may pass
+    # through a symlink, and git writes real paths in worktree metadata. Both
+    # must reach the same key, or one repository shows as two groups.
+    path = os.path.realpath(cwd)
     while True:
         if os.path.exists(os.path.join(path, '.git')):
             gitdir = _git_dir_for(path)
             if gitdir:
-                name, is_worktree = _main_repo_name(path, gitdir)
-                return RepoInfo(path, name, _branch_from_head(gitdir), is_worktree)
+                name, main, is_worktree = _main_repo(path, gitdir)
+                return RepoInfo(path, name, _branch_from_head(gitdir), is_worktree, main)
         parent = os.path.dirname(path)
         if parent == path:
             return None

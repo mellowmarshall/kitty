@@ -1355,7 +1355,8 @@ class Window:
     def set_user_var(self, key: str, val: str | bytes | None) -> None:
         key = sanitize_control_codes(key).replace('\n', ' ')
         self.user_vars.pop(key, None)  # ensure key will be newest in user_vars even if already present
-        if key == 'agent_state':
+        opts = get_options()
+        if key and key in (opts.side_nav_state_var, opts.side_nav_cwd_var):
             mark_side_nav_dirty(self.os_window_id)
         if len(self.user_vars) > 64:  # dont store too many user vars
             oldest_key = next(iter(self.user_vars))

@@ -6,15 +6,9 @@ import tempfile
 from unittest.mock import patch
 
 from kitty.fast_data_types import Region
-from kitty.side_nav import (
-    SideNav,
-    SideNavTabInput,
-    build_groups,
-    most_urgent_agent_state,
-    names_program,
-    program_name,
-    rows_for_groups,
-)
+from kitty.side_nav import SideNav, names_program
+from kitty.side_nav_model import SideNavTabInput, build_groups, most_urgent_agent_state, rows_for_groups
+from kitty.side_nav_program import program_name
 from kitty.side_nav_repo import RepoCache, RepoInfo, find_repo, shorten_path
 from kitty.side_nav_tabs import ActivityTracker
 
@@ -31,8 +25,10 @@ def write(path: str, text: str) -> None:
         f.write(text)
 
 
-def tab(tab_id: int, cwd: str, title: str = '', is_active: bool = False, agent_state: str = '', needs_attention: bool = False) -> SideNavTabInput:
-    return SideNavTabInput(tab_id, title or f't{tab_id}', is_active, needs_attention, False, agent_state, cwd)
+def tab(
+    tab_id: int, cwd: str, title: str = '', is_active: bool = False, agent_state: str = '', needs_attention: bool = False, program: str = ''
+) -> SideNavTabInput:
+    return SideNavTabInput(tab_id, title or f't{tab_id}', is_active, needs_attention, False, agent_state, cwd, program)
 
 
 class TestSideNav(BaseTest):
@@ -48,8 +44,9 @@ class TestSideNav(BaseTest):
         main = os.path.join(self.tdir, 'proj')
         write(os.path.join(main, '.git', 'HEAD'), 'ref: refs/heads/feature/x\n')
         os.makedirs(os.path.join(main, 'src', 'deep'))
-        self.ae(find_repo(os.path.join(main, 'src', 'deep')), RepoInfo(main, 'proj', 'feature/x', False))
-        self.ae(find_repo(main), RepoInfo(main, 'proj', 'feature/x', False))
+        main_git = os.path.join(main, '.git')
+        self.ae(find_repo(os.path.join(main, 'src', 'deep')), RepoInfo(main, 'proj', 'feature/x', False, main_git))
+        self.ae(find_repo(main), RepoInfo(main, 'proj', 'feature/x', False, main_git))
         self.assertIsNone(find_repo(self.tdir))
         self.assertIsNone(find_repo(''))
         self.assertIsNone(find_repo('relative/path'))
@@ -66,13 +63,21 @@ class TestSideNav(BaseTest):
         write(os.path.join(wt, '.git'), f'gitdir: {wt_gitdir}\n')
         write(os.path.join(wt_gitdir, 'HEAD'), 'ref: refs/heads/side-nav\n')
         write(os.path.join(wt_gitdir, 'commondir'), '../..\n')
-        self.ae(find_repo(wt), RepoInfo(wt, 'proj', 'side-nav', True))
+        # and the same main git dir, its grouping key
+        self.ae(find_repo(wt), RepoInfo(wt, 'proj', 'side-nav', True, main_git))
 
         # A relative gitdir in the .git file is resolved against the worktree
         sub = os.path.join(main, 'vendor', 'lib')
         write(os.path.join(sub, '.git'), 'gitdir: ../../.git/modules/lib\n')
         write(os.path.join(main, '.git', 'modules', 'lib', 'HEAD'), 'ref: refs/heads/main\n')
-        self.ae(find_repo(sub), RepoInfo(sub, 'lib', 'main', False))
+        self.ae(find_repo(sub), RepoInfo(sub, 'lib', 'main', False, os.path.join(main_git, 'modules', 'lib')))
+
+        # A path through a symlink finds the same repository and key as the real one
+        link = os.path.join(self.tdir, 'link')
+        os.symlink(main, link)
+        via_link = find_repo(os.path.join(link, 'src'))
+        assert via_link is not None
+        self.ae((via_link.root, via_link.name, via_link.main), (main, 'proj', main_git))
 
         # A .git file that is not a gitdir pointer is skipped and the search goes up
         bogus = os.path.join(main, 'bogus')
@@ -189,9 +194,6 @@ class TestSideNav(BaseTest):
         self.ae([g.name for g in groups], ['b', 'a', 'other'])
         self.ae([[t.tab_id for t in g.tabs] for g in groups], [[1, 5], [2, 4], [3]])
         self.ae([g.is_active for g in groups], [False, True, False])
-        self.ae(groups[0].detail, '/r/b')
-        self.ae(groups[1].detail, 'main · /r/a')
-        self.ae(groups[2].detail, '')
         # the repo lookup runs once per distinct cwd
         self.ae(sorted(calls), ['/r/a', '/r/a/sub', '/r/b', '/tmp'])
         # tabs are numbered by their position in the project, which is what
@@ -199,10 +201,34 @@ class TestSideNav(BaseTest):
         self.ae([[t.index for t in g.tabs] for g in groups], [[1, 2], [1, 2], [1]])
         self.ae(build_groups((), repo_for), ())
 
+    def test_worktrees_share_a_group_and_programs_show_their_branch(self):
+        repos = {
+            '/src/exp': RepoInfo('/src/exp', 'exp', 'main', False, '/src/exp/.git'),
+            '/data/exp/fix': RepoInfo('/data/exp/fix', 'exp', 'fix-login', True, '/src/exp/.git'),
+            '/opt/exp': RepoInfo('/opt/exp', 'exp', 'main', False, '/opt/exp/.git'),
+        }
+        groups = build_groups(
+            (
+                tab(1, '/src/exp', program='claude'),
+                tab(2, '/data/exp/fix', program='codex'),
+                tab(3, '/data/exp/fix'),  # a shell shows no branch
+                tab(4, '/opt/exp', program='vim'),  # another repository of the same name
+            ),
+            repos.get,
+        )
+        # repositories of the same name show where they are
+        self.ae([(g.name, [t.tab_id for t in g.tabs]) for g in groups], [('exp · /src', [1, 2, 3]), ('exp · /opt', [4])])
+        self.ae([t.branch for t in groups[0].tabs], ['main', 'fix-login', ''])
+        rows = rows_for_groups(groups)
+        self.ae(
+            [(r.kind, r.tab_id) for r in rows],
+            [('group', 1), ('tab', 1), ('branch', 1), ('tab', 2), ('branch', 2), ('tab', 3), ('blank', 0), ('group', 4), ('tab', 4), ('branch', 4)],
+        )
+
     def test_rows_and_agent_state(self):
         groups = build_groups((tab(1, '/a'), tab(2, '/b')), lambda cwd: RepoInfo(cwd, cwd[1:], 'main'))
         rows = rows_for_groups(groups)
-        self.ae([(r.kind, r.tab_id) for r in rows], [('group', 1), ('detail', 1), ('tab', 1), ('blank', 0), ('group', 2), ('detail', 2), ('tab', 2)])
+        self.ae([(r.kind, r.tab_id) for r in rows], [('group', 1), ('tab', 1), ('blank', 0), ('group', 2), ('tab', 2)])
         self.ae(most_urgent_agent_state(('done', 'working', '')), 'working')
         self.ae(most_urgent_agent_state(('Waiting', 'blocked')), 'blocked')
         self.ae(most_urgent_agent_state(('', 'bogus')), '')
@@ -230,30 +256,34 @@ class TestSideNav(BaseTest):
         groups = build_groups(
             (
                 tab(1, '/a', 'shell'),
-                tab(2, '/a', 'claude', agent_state='waiting'),
+                tab(2, '/a', 'claude', agent_state='waiting', program='claude'),
                 tab(3, '/b', 'logs'),
-                tab(4, '/b', 'a very long tab title that cannot fit', is_active=True),
+                tab(4, '/b', 'a very long tab title that cannot fit', is_active=True, program='vim'),
             ),
             repo_for,
         )
         sn.update(groups)
-        # rows: alpha, detail, 1, 2, blank, beta, detail, 3, 4 = 9 rows. Only 5
-        # of the 6 lines are fully visible, so the view scrolls until the active
-        # tab is on the fifth line rather than on the clipped sixth.
+        # rows: alpha, 1, 2, branch of 2, blank, beta, 3, 4, branch of 4 = 9
+        # rows. Only 5 of the 6 lines are fully visible, so the view scrolls
+        # until the active tab and its branch are on the fourth and fifth
+        # lines rather than on the clipped sixth.
         self.ae(len(sn.rows), 9)
         self.ae(sn.scroll_offset, 4)
         lines = self.screen_lines(sn)
         self.ae(lines[0], '')
         self.ae(lines[1].strip(), '▌beta')
-        self.ae(lines[2].strip(), 'dev · /b')
-        self.assertTrue(lines[4].endswith('…'), lines[4])
-        self.ae(len(lines[4]), sn.screen.columns)
+        self.ae(lines[2].split(), ['1', 'logs'])
+        # the program sits at the right of a title that does not name it
+        self.ae(lines[3].split()[-2:], ['lon…', 'vim'])
+        self.ae(lines[4].strip(), '└ dev')
         self.ae(lines[5], '')
 
-        # clicks map screen lines to tabs, group and detail rows focus the first tab
+        # clicks map screen lines to tabs: a group row focuses its first tab,
+        # a branch row the tab above it
         self.ae(sn.tab_id_at(0), 0)  # blank row
         self.ae(sn.tab_id_at(20 * 1 + 5), 3)
-        self.ae(sn.tab_id_at(20 * 3), 3)
+        self.ae(sn.tab_id_at(20 * 2), 3)
+        self.ae(sn.tab_id_at(20 * 3), 4)
         self.ae(sn.tab_id_at(20 * 4), 4)
         self.ae(sn.tab_id_at(20 * 5), 0)  # past the last row
         self.ae(sn.tab_id_at(20 * 6), 0)  # below the last line
@@ -263,8 +293,9 @@ class TestSideNav(BaseTest):
         self.ae(sn.scroll_offset, 0)
         lines = self.screen_lines(sn)
         self.ae(lines[0].split(), ['alpha', '●'])
-        self.ae(lines[3].split()[:2], ['2', 'claude'])
-        self.assertTrue(lines[3].endswith('●'))
+        self.ae(lines[2].split()[:2], ['2', 'claude'])
+        self.assertTrue(lines[2].endswith('●'))
+        self.ae(lines[3].strip(), '└ main')
         self.ae(sn.tab_id_at(0), 1)  # a group row focuses its first tab
         sn.scroll(100)
         self.ae(sn.scroll_offset, 4)
@@ -273,9 +304,9 @@ class TestSideNav(BaseTest):
         # even when the previous render ended on the highlighted active tab.
         sn.update(build_groups((tab(1, '/a', is_active=True),), repo_for))
         self.ae(sn.scroll_offset, 0)
-        for y in range(3, sn.screen.lines):
+        for y in range(2, sn.screen.lines):
             self.ae(sn.screen.line(y).cursor_from(0).bg, 0, y)
-        self.assertNotEqual(sn.screen.line(2).cursor_from(0).bg, 0)
+        self.assertNotEqual(sn.screen.line(1).cursor_from(0).bg, 0)
         sn.update(groups)
 
         # an unchanged model does not redraw
@@ -294,8 +325,9 @@ class TestSideNav(BaseTest):
             )
 
         sn.update(groups(4))
-        # the active row (index 8) sits on the last fully visible line
-        self.ae(sn.scroll_offset, 4)
+        # rows: alpha, 1, 2, blank, beta, 3, 4, 5. The active row (index 6)
+        # sits on the last fully visible line.
+        self.ae(sn.scroll_offset, 2)
         sn.scroll(-100)
         self.ae(sn.scroll_offset, 0)
         # a title change keeps the user's scroll position
@@ -303,7 +335,23 @@ class TestSideNav(BaseTest):
         self.ae(sn.scroll_offset, 0)
         # a change of the active tab scrolls to it again
         sn.update(groups(5, 'logs updated'))
-        self.ae(sn.scroll_offset, 5)
+        self.ae(sn.scroll_offset, 3)
+
+    def test_a_late_branch_row_scrolls_into_view(self):
+        sn = self.side_nav(height=60)  # 3 lines
+        repo_for = {'/a': RepoInfo('/a', 'alpha', 'main')}.get
+        sn.update(build_groups((tab(1, '/a'), tab(2, '/a', is_active=True)), repo_for))
+        self.ae(sn.scroll_offset, 0)  # alpha, 1, 2 fit
+        # the program in the active tab is found a moment later: its branch row follows
+        sn.update(build_groups((tab(1, '/a'), tab(2, '/a', is_active=True, program='vim')), repo_for))
+        self.ae(sn.scroll_offset, 1)
+        self.ae(self.screen_lines(sn)[2].strip(), '└ main')
+
+    def test_one_line_shows_the_tab_not_its_branch(self):
+        sn = self.side_nav(height=20)
+        sn.update(build_groups((tab(1, '/a'), tab(2, '/a', is_active=True, program='vim')), lambda cwd: RepoInfo(cwd, 'a', 'main')))
+        self.ae(sn.visible_lines, 1)
+        self.ae(self.screen_lines(sn)[0].split()[:2], ['2', 't2'])
 
     def test_resize_keeps_active_tab_visible(self):
         sn = self.side_nav(height=400)  # 20 lines, everything fits
@@ -320,18 +368,20 @@ class TestSideNav(BaseTest):
 
         relayout(100)  # 5 lines: the active tab (row 13) must scroll into view
         self.ae(sn.visible_lines, 5)
-        self.ae(sn.scroll_offset, 9)
+        self.ae(sn.scroll_offset, 8)
         self.ae(self.screen_lines(sn)[4].split(), ['12', 't12'])
         relayout(400)  # growing again leaves no empty space at the bottom
         self.ae(sn.scroll_offset, 0)
 
     def test_control_characters_are_not_drawn(self):
         sn = self.side_nav()
-        sn.update(build_groups((tab(1, '/a', 'one\ntwo\rthree\x1b[31m', is_active=True),), lambda cwd: RepoInfo(cwd, 'x\ny', 'b\x08r')))
+        groups = build_groups((tab(1, '/a', 'one\ntwo\rthree\x1b[31m', is_active=True, program='v\x07im'),), lambda cwd: RepoInfo(cwd, 'x\ny', 'b\x08r'))
+        sn.update(groups)
         lines = self.screen_lines(sn)
         self.ae(lines[0].strip(), '▌xy')
-        self.ae(lines[1].strip(), 'br · /a')
-        self.ae(lines[2].split(), ['1', 'onetwothree[31m'])
+        # the title fits by its drawn width, so the program keeps its place
+        self.ae(lines[1].split(), ['1', 'onetwothre…', 'vim'])
+        self.ae(lines[2].strip(), '└ br')
 
     def test_layout_rejects_tiny_regions(self):
         self.set_options({'side_nav_width': 20})
@@ -390,7 +440,7 @@ class TestSideNavWidth(BaseTest):
 
 class TestMainProgram(BaseTest):
     def test_the_topmost_program_names_the_window(self):
-        from kitty.side_nav import main_program
+        from kitty.side_nav_program import main_program
 
         agy = (10, 1, ['/home/u/.local/bin/agy', '--conversation', 'x'])
         uvx = (11, 10, ['/home/u/.local/bin/uv', 'tool', 'uvx', 'blender-mcp'])
@@ -410,3 +460,50 @@ class TestMainProgram(BaseTest):
 
         self.ae(parent_pid(os.getpid()), os.getppid())
         self.ae(parent_pid(-5), -1)
+
+
+class TestWorkDir(BaseTest):
+    def test_reported_work_dir_wins_over_the_cwd(self):
+        from types import SimpleNamespace
+
+        from kitty.side_nav_tabs import SideNavController
+
+        c = SideNavController.__new__(SideNavController)
+        c.proc_cwds = {}
+        c.programs = {1: 'agent'}
+        w = SimpleNamespace(id=1, user_vars={}, child_is_remote=False, screen=SimpleNamespace(last_reported_cwd=''), get_cwd_of_child=lambda: '/start')
+        self.set_options({'side_nav_cwd_var': 'work_dir'})
+        self.ae(c.work_dir(w), '/start')
+        w.user_vars['work_dir'] = '/data/wt'
+        self.ae(c.work_dir(w), '/data/wt')
+        w.user_vars['work_dir'] = 'file:///data/wt%202'
+        self.ae(c.work_dir(w), '/data/wt 2')
+        w.user_vars['work_dir'] = 'relative/path'  # not a directory it can use
+        self.ae(c.work_dir(w), '/start')
+        w.user_vars['work_dir'] = '/' + 'x' * 5000  # longer than any real path
+        self.ae(c.work_dir(w), '/start')
+        w.user_vars['work_dir'] = '/data/wt'
+        c.programs[1] = ''  # the program exited, its report no longer applies
+        self.ae(c.work_dir(w), '/start')
+        c.programs[1] = 'agent'
+        w.child_is_remote = True  # a path on another host
+        self.ae(c.work_dir(w), '/start')
+        w.child_is_remote = False
+        self.set_options({'side_nav_cwd_var': ''})
+        w.user_vars['work_dir'] = '/data/wt'
+        self.ae(c.work_dir(w), '/start')
+
+
+class TestStateVar(BaseTest):
+    def test_reported_state_needs_the_option(self):
+        from types import SimpleNamespace
+
+        from kitty.side_nav_tabs import ActivityTracker, SideNavController
+
+        c = SideNavController.__new__(SideNavController)
+        c.activity, c.worked = ActivityTracker(), set()
+        w = SimpleNamespace(id=1, user_vars={'agent_state': 'waiting'}, last_resized_at=0, screen=SimpleNamespace(io_times=lambda: (-1, -1)))
+        self.set_options({'side_nav_state_var': ''})
+        self.ae(c.window_state(w, False, 100.0), '')
+        self.set_options({'side_nav_state_var': 'agent_state'})
+        self.ae(c.window_state(w, False, 100.0), 'waiting')
