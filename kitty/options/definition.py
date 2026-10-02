@@ -2555,6 +2555,35 @@ tab by number, also stay within the project.
 )
 
 opt(
+    'side_nav_state_var',
+    '',
+    long_text="""
+The name of a user variable in which programs report their state, shown as a
+badge on their tab in the side nav. The states are :code:`blocked`,
+:code:`waiting`, :code:`working` and :code:`done`, from most to least urgent.
+For example, with :code:`side_nav_state_var agent_state` a hook of a program
+can run :code:`kitten @ set-user-vars agent_state=waiting`. Programs that do not
+report a state show as working while they produce output, and as done until
+their tab is looked at.
+""",
+)
+
+opt(
+    'side_nav_cwd_var',
+    '',
+    long_text="""
+The name of a user variable in which programs report the directory they work
+in, an absolute path or a :code:`file://` URL. While a program runs in the
+window, the side nav uses it instead of the current directory of the program:
+to group the tab under its git repository, to show the branch under the program,
+and to select the project whose tabs the tab bar shows. This matters for
+programs that work in another worktree than the one they started in. For example, with
+:code:`side_nav_cwd_var work_dir` a status line script of the program can run
+:code:`kitten @ set-user-vars work_dir=/path/to/worktree`.
+""",
+)
+
+opt(
     'side_nav_background',
     'none',
     option_type='to_color_or_none',

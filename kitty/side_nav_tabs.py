@@ -5,6 +5,7 @@
 # activity, decides which tabs the tab bar shows for the selected project, and
 # handles the side nav's mouse, scroll and timer events.
 
+import os
 from collections.abc import Iterable
 from typing import TYPE_CHECKING
 
@@ -22,7 +23,9 @@ from .fast_data_types import (
     set_side_nav_hidden,
     side_nav_region,
 )
-from .side_nav import SideNav, SideNavTabInput, build_groups, main_program, most_urgent_agent_state, program_name
+from .side_nav import SideNav
+from .side_nav_model import SideNavTabInput, build_groups, group_key, most_urgent_agent_state
+from .side_nav_program import main_program, program_name
 from .side_nav_repo import RepoCache
 from .side_nav_width import lowest_width, resized, saved_width
 from .utils import path_from_osc7_url
@@ -31,6 +34,8 @@ if TYPE_CHECKING:
     from .tabs import Tab, TabManager
     from .window import Window
 
+# Longer reported paths are not real ones, and looking them up costs time
+MAX_PATH = 4096
 PROC_CWD_TTL = 2.0  # seconds a cwd read from /proc is reused
 # Refresh often enough that the working badge follows programs closely, an
 # update with nothing changed does not redraw.
@@ -151,6 +156,20 @@ class SideNavController:
             self.proc_cwds[w.id] = cwd = w.get_cwd_of_child() or ''
         return cwd
 
+    def work_dir(self, w: 'Window') -> str:
+        """Where the window works: the directory its program reports in the user
+        variable side_nav_cwd_var, such as an agent that works in another
+        worktree than the one it started in, else the cwd of the window."""
+        # Only while a program runs: nothing clears the variable when it exits,
+        # and the shell it returns to may be anywhere. A program on another
+        # host reports paths of that host.
+        if (var := get_options().side_nav_cwd_var) and not w.child_is_remote and (reported := w.user_vars.get(var, '')) and self.program(w):
+            if reported.startswith('file://'):
+                reported = path_from_osc7_url(reported) or ''
+            if os.path.isabs(reported) and len(reported) <= MAX_PATH:
+                return reported
+        return self.cwd(w)
+
     def program(self, w: 'Window') -> str:
         # Reading the foreground program scans /proc, and updates come several
         # times a second while titles animate, so reuse it like the cwd.
@@ -169,8 +188,7 @@ class SideNavController:
             # A closing tab has lost its windows before the next tab is chosen,
             # it still belongs to the project it was in.
             return self.known_group_keys.get(tab.id, '')
-        repo = self.repos(self.cwd(w))
-        self.known_group_keys[tab.id] = key = repo.root if repo else ''
+        self.known_group_keys[tab.id] = key = group_key(self.repos(self.work_dir(w)))
         return key
 
     def filter_tab_bar(self, tabs: Iterable['Tab']) -> Iterable['Tab']:
@@ -182,8 +200,8 @@ class SideNavController:
         return (t for t in tabs if t is at or self.group_key(t) == key)
 
     def window_state(self, w: 'Window', is_looked_at: bool, now: float) -> str:
-        # A state reported by the program itself, for example by an agent hook, wins.
-        if explicit := w.user_vars.get('agent_state', ''):
+        # A state reported by the program itself, for example by a hook, wins.
+        if (var := get_options().side_nav_state_var) and (explicit := w.user_vars.get(var, '')):
             return explicit
         output_ago, stimulus_ago = w.screen.io_times()
         # A resize makes shells and TUIs redraw, which is not work either
@@ -216,7 +234,7 @@ class SideNavController:
             for t in tm.tabs_matching_tab_bar_filter:
                 td = t.data_for_tab_bar(t is at)
                 w = t.active_window
-                cwd = self.cwd(w) if w else ''
+                cwd = self.work_dir(w) if w else ''
                 states = []
                 for x in t:
                     live.add(x.id)
