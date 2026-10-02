@@ -39,6 +39,7 @@ class SideNavTabInput(NamedTuple):
     has_activity: bool
     agent_state: str
     cwd: str
+    program: str = ''  # the program in the foreground of the active window, '' for a shell
 
 
 class SideNavTab(NamedTuple):
@@ -49,6 +50,7 @@ class SideNavTab(NamedTuple):
     needs_attention: bool
     has_activity: bool
     agent_state: str
+    program: str = ''
 
 
 class SideNavGroup(NamedTuple):
@@ -90,7 +92,7 @@ def build_groups(entries: Iterable[SideNavTabInput], repo_for: Callable[[str], R
             order.append(key)
             members[key] = []
             repos[key] = repo
-        members[key].append(SideNavTab(e.tab_id, len(members[key]) + 1, e.title, e.is_active, e.needs_attention, e.has_activity, e.agent_state))
+        members[key].append(SideNavTab(e.tab_id, len(members[key]) + 1, e.title, e.is_active, e.needs_attention, e.has_activity, e.agent_state, e.program))
     groups = []
     for key in order:
         repo = repos[key]
@@ -119,6 +121,28 @@ def rows_for_groups(groups: Sequence[SideNavGroup]) -> tuple[SideNavRow, ...]:
 
 def region_key(r: Region) -> tuple[int, int, int, int]:
     return r.left, r.top, r.right, r.bottom
+
+
+SHELLS = frozenset({'bash', 'zsh', 'fish', 'sh', 'dash', 'ksh', 'tcsh', 'nu', 'xonsh'})
+INTERPRETERS = frozenset({'node', 'python', 'python3', 'bun', 'deno', 'ruby', 'perl'})
+
+
+def program_name(cmdline: Sequence[str]) -> str:
+    """A short name for the program a command line runs, '' for a shell.
+
+    Interpreters name their script instead, so an npm-installed codex shows
+    as codex rather than node."""
+    if not cmdline:
+        return ''
+    name = cmdline[0].rsplit('/', 1)[-1].lstrip('-')
+    base = re.sub(r'[0-9.]+$', '', name)
+    if base in INTERPRETERS:
+        script = next((arg for arg in cmdline[1:] if not arg.startswith('-')), '')
+        if script:
+            name = re.sub(r'\.(m?js|cjs|py)$', '', script.rsplit('/', 1)[-1])
+    elif base in SHELLS:
+        return ''
+    return name
 
 
 def fit(text: str, width: int) -> str:
@@ -313,9 +337,16 @@ class SideNav:
             self.fill_line(line, bg)
             prefix = f'  {t.index} ' if t.index < 10 else f' {t.index} '
             badge, badge_fg = self.tab_badge(t)
-            room = width - len(prefix) - (wcswidth(badge) + 1 if badge else 0)
+            badge_width = wcswidth(badge) + 1 if badge else 0
+            room = width - len(prefix) - badge_width
+            # The running program sits at the right, unless the title already names it
+            program = t.program if t.program and t.program.lower() not in t.title.lower() else ''
+            program_width = min(wcswidth(program), max(0, room // 2 - 1)) if program else 0
             self.draw_text(prefix, c.dim_fg if not t.is_active else fg, bg)
-            self.draw_text(fit(t.title, max(1, room)), fg, bg, bold=t.is_active)
+            self.draw_text(fit(t.title, max(1, room - (program_width + 1 if program_width else 0))), fg, bg, bold=t.is_active)
+            if program_width:
+                s.cursor.x, s.cursor.y = width - badge_width - program_width - 1, line
+                self.draw_text(fit(program, program_width), c.dim_fg if not t.is_active else fg, bg)
             if badge:
                 self.draw_badge(line, badge, badge_fg, bg)
 

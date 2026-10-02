@@ -21,7 +21,7 @@ from .fast_data_types import (
     set_side_nav_hidden,
     side_nav_region,
 )
-from .side_nav import SideNav, SideNavTabInput, build_groups, most_urgent_agent_state
+from .side_nav import SideNav, SideNavTabInput, build_groups, most_urgent_agent_state, program_name
 from .side_nav_repo import RepoCache
 from .utils import path_from_osc7_url
 
@@ -197,6 +197,7 @@ class SideNavController:
                         td.has_activity_since_last_focus,
                         most_urgent_agent_state(states),
                         cwd,
+                        program_name(w.child.foreground_cmdline) if w else '',
                     )
                 )
                 keys.append((t.id, self.group_key(t)))
