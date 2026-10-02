@@ -4400,6 +4400,22 @@ map(
     'Reset the side nav width',
     'side_nav_reset --allow-fallback=shifted,ascii kitty_mod+alt+0 resize_side_nav reset',
 )
+
+map(
+    'Move the side nav group up',
+    'side_nav_group_up kitty_mod+alt+page_up move_side_nav_group up',
+)
+
+map(
+    'Move the side nav group down',
+    'side_nav_group_down kitty_mod+alt+page_down move_side_nav_group down',
+)
+
+map(
+    'Collapse or expand the side nav group',
+    'side_nav_group_toggle --allow-fallback=shifted,ascii kitty_mod+alt+c toggle_side_nav_group',
+)
+
 map(
     'Set tab title',
     'set_tab_title --allow-fallback=shifted,ascii shift+cmd+i set_tab_title',

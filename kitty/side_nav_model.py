@@ -107,13 +107,15 @@ def group_key(repo: RepoInfo | None) -> str:
     return (repo.main or repo.root) if repo else ''
 
 
-def rows_for_groups(groups: Sequence[SideNavGroup]) -> tuple[SideNavRow, ...]:
+def rows_for_groups(groups: Sequence[SideNavGroup], collapsed: frozenset[str] = frozenset()) -> tuple[SideNavRow, ...]:
     rows: list[SideNavRow] = []
     for i, g in enumerate(groups):
         first_tab = g.tabs[0].tab_id if g.tabs else 0
         if i:
             rows.append(SideNavRow('blank', 0))
         rows.append(SideNavRow('group', first_tab, g))
+        if g.key in collapsed:
+            continue  # only the header, which sums up its tabs
         for t in g.tabs:
             rows.append(SideNavRow('tab', t.tab_id, g, t))
             if t.branch:

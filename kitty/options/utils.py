@@ -342,6 +342,15 @@ def resize_side_nav(func: str, rest: str) -> FuncArgsType:
     return func, [quality, increment]
 
 
+@func_with_args('move_side_nav_group')
+def move_side_nav_group(func: str, rest: str) -> FuncArgsType:
+    direction = rest.strip().lower() or 'up'
+    if direction not in ('up', 'down'):
+        log_error(f'Invalid side nav group direction: {direction}')
+        direction = 'up'
+    return func, [direction]
+
+
 @func_with_args('move_window')
 def move_window(func: str, rest: str) -> FuncArgsType:
     rest = rest.lower()

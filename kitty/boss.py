@@ -1312,6 +1312,50 @@ class Boss:
         if (tm := self.active_tab_manager_with_dispatch) and (cols := tm.side_nav.resized_width(quality, increment)) is not None:
             self.set_side_nav_width(cols)
 
+    @ac(
+        'tab',
+        """
+        Move the side nav group of the active tab up or down the list
+
+        Its tabs move together, so the tab order changes to match: tabs of the
+        group that were apart from each other end up next to each other. For
+        example::
+
+            map kitty_mod+alt+page_up move_side_nav_group up
+            map kitty_mod+alt+page_down move_side_nav_group down
+
+        Dragging a group header in the side nav does the same.
+        """,
+    )
+    def move_side_nav_group(self, direction: str = 'up') -> None:
+        if tm := self.active_tab_manager_with_dispatch:
+            tm.side_nav.move_active_group(1 if direction == 'down' else -1)
+
+    @ac(
+        'tab',
+        """
+        Collapse or expand the side nav group of the active tab
+
+        A collapsed group shows only its header, with its number of tabs and the
+        most urgent state among them. Clicking the arrow of a group header does the
+        same. Collapsed groups apply to every OS window and are kept after kitty
+        restarts.
+        """,
+    )
+    def toggle_side_nav_group(self) -> None:
+        if (tm := self.active_tab_manager_with_dispatch) and tm.side_nav.is_visible and (at := tm.active_tab) is not None:
+            key = tm.side_nav.group_key(at)
+            self.set_side_nav_group_collapsed(key, key not in tm.side_nav.collapsed)
+
+    def set_side_nav_group_collapsed(self, key: str, collapsed: bool) -> None:
+        from .side_nav_arrange import save_collapsed
+
+        current = next(iter(self.os_window_map.values())).side_nav.collapsed if self.os_window_map else frozenset()
+        keys = current | {key} if collapsed else current - {key}
+        for tm in self.os_window_map.values():
+            tm.side_nav.set_collapsed(keys)
+        save_collapsed(keys)
+
     def set_side_nav_width(self, cols: int) -> None:
         "One width for the side nav of every OS window, zero for side_nav_width"
         from .side_nav_width import save_width

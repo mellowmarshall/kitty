@@ -1003,6 +1003,12 @@ defaults.map = [
     KeyDefinition(trigger=SingleKey(mods=258, key=91), options=KeyMapOptions(when_focus_on='', new_mode='', mode='', on_unknown='beep', on_action='keep', timeout=None, allow_fallback=(KeyFallbackType.shifted, KeyFallbackType.alternate)), definition='resize_side_nav narrower 2'),
     # side_nav_reset
     KeyDefinition(trigger=SingleKey(mods=258, key=48), options=KeyMapOptions(when_focus_on='', new_mode='', mode='', on_unknown='beep', on_action='keep', timeout=None, allow_fallback=(KeyFallbackType.shifted, KeyFallbackType.alternate)), definition='resize_side_nav reset'),
+    # side_nav_group_up
+    KeyDefinition(trigger=SingleKey(mods=258, key=57354), definition='move_side_nav_group up'),
+    # side_nav_group_down
+    KeyDefinition(trigger=SingleKey(mods=258, key=57355), definition='move_side_nav_group down'),
+    # side_nav_group_toggle
+    KeyDefinition(trigger=SingleKey(mods=258, key=99), options=KeyMapOptions(when_focus_on='', new_mode='', mode='', on_unknown='beep', on_action='keep', timeout=None, allow_fallback=(KeyFallbackType.shifted, KeyFallbackType.alternate)), definition='toggle_side_nav_group'),
     # next_layout
     KeyDefinition(trigger=SingleKey(mods=256, key=108), options=KeyMapOptions(when_focus_on='', new_mode='', mode='', on_unknown='beep', on_action='keep', timeout=None, allow_fallback=(KeyFallbackType.shifted, KeyFallbackType.alternate)), definition='next_layout'),
     # increase_font_size
