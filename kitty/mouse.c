@@ -1018,7 +1018,7 @@ num_visible_windows(Tab *t) {
 typedef struct MouseRegion {
     unsigned window_idx;
     bool in_tab_bar;
-    bool in_side_nav;
+    bool in_side_nav, on_side_nav_border;
     bool in_title_bar;
     Edge window_border;
     Window *window;
@@ -1033,6 +1033,12 @@ mouse_region(bool detect_borders, bool detect_title_bar) {
     os_window_side_nav_region(w, &side_nav);
     if (mouse_in_region(&side_nav)) {
         ans.in_side_nav = true;
+        // The inner edge is a handle that drags the side nav wider or narrower,
+        // as wide as the tolerance for dragging window borders
+        double dpi = (w->fonts_data->logical_dpi_x + w->fonts_data->logical_dpi_y) / 2.;
+        double grip = MAX(2.0, round(OPT(window_drag_tolerance) * (dpi / 72.0)));
+        if (OPT(side_nav_edge) == RIGHT_EDGE) ans.on_side_nav_border = w->mouse_x < side_nav.left + grip;
+        else ans.on_side_nav_border = w->mouse_x >= side_nav.right - grip;
         return ans;
     }
     os_window_regions(w, &central, &tab_bar);
@@ -1173,7 +1179,9 @@ void
 update_mouse_pointer_shape(void) {
     mouse_cursor_shape = TEXT_POINTER;
     MouseRegion r = mouse_region(false, true);
-    if (r.in_tab_bar || r.in_side_nav) {
+    if (r.on_side_nav_border || (global_state.side_nav_being_resized && global_state.callback_os_window && global_state.side_nav_being_resized == global_state.callback_os_window->id)) {
+        mouse_cursor_shape = EW_RESIZE_POINTER;
+    } else if (r.in_tab_bar || r.in_side_nav) {
         mouse_cursor_shape = POINTER_POINTER;
     } else if (r.in_title_bar) {
         mouse_cursor_shape = POINTER_POINTER;
@@ -1417,6 +1425,22 @@ mouse_event(const int button, int modifiers, int action) {
             }
         }
     }
+    if (global_state.side_nav_being_resized) {
+        // Follow the pointer anywhere in the OS window until the button is released
+        if (global_state.side_nav_being_resized == osw->id) {
+            // Any button event ends the drag, as does motion with the button up:
+            // a window manager grab can take the release
+            const bool ended = button > -1 || !osw->mouse_button_pressed[GLFW_MOUSE_BUTTON_LEFT];
+            unsigned cols = os_window_side_nav_cols(osw, osw->mouse_x + global_state.side_nav_drag_offset);
+            call_boss(handle_side_nav_resize, "KIO", osw->id, cols, ended ? Py_True : Py_False);
+            if (!ended) return;
+        }
+        global_state.side_nav_being_resized = 0;
+        mouse_cursor_shape = DEFAULT_POINTER;
+        set_mouse_cursor(mouse_cursor_shape);
+        debug("side nav resize ended\n");
+        return;
+    }
     if (global_state.active_drag_resize) {
         if (button < 0) {
             call_boss(drag_resize_update, "dd", osw->mouse_x, osw->mouse_y);
@@ -1442,6 +1466,17 @@ mouse_event(const int button, int modifiers, int action) {
         mouse_cursor_shape = POINTER_POINTER;
         handle_tab_bar_mouse(button, modifiers, action);
         debug("handled by tab bar\n");
+    } else if (r.on_side_nav_border && !global_state.window_being_dragged.id) {
+        mouse_cursor_shape = EW_RESIZE_POINTER;
+        if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
+            // Keep the border where it was grabbed, so a click does not move it
+            Region side_nav;
+            os_window_side_nav_region(osw, &side_nav);
+            double edge = OPT(side_nav_edge) == RIGHT_EDGE ? side_nav.left : side_nav.right;
+            global_state.side_nav_drag_offset = edge - osw->mouse_x;
+            global_state.side_nav_being_resized = osw->id;
+        }
+        debug("side nav border\n");
     } else if (r.in_side_nav && !global_state.window_being_dragged.id) {
         // A window title bar drag must see its release even over the side nav
         mouse_cursor_shape = POINTER_POINTER;

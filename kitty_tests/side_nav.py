@@ -343,3 +343,70 @@ class TestSideNav(BaseTest):
             sn = SideNav(1)
             self.assertFalse(sn.layout())
             srd.assert_not_called()
+
+
+class TestSideNavWidth(BaseTest):
+    def test_resize_steps_and_reset(self):
+        from kitty.side_nav_width import MIN_COLS, lowest_width, resized
+
+        self.ae(resized(30, 'wider', 2), 32)
+        self.ae(resized(30, 'narrower', 4), 26)
+        self.ae(resized(30, 'narrower', -4), 26)
+        self.ae(resized(MIN_COLS + 1, 'narrower', 5), MIN_COLS)
+        self.ae(resized(30, 'reset', 2), 0)
+        # A narrow side_nav_width is itself allowed
+        self.ae(lowest_width(5), 5)
+        self.ae(lowest_width(30), MIN_COLS)
+        self.ae(resized(6, 'narrower', 2, lowest_width(5)), 5)
+
+    def test_action_arguments(self):
+        from kitty.options.utils import resize_side_nav
+
+        self.ae(resize_side_nav('resize_side_nav', 'narrower 3'), ('resize_side_nav', ['narrower', 3]))
+        self.ae(resize_side_nav('resize_side_nav', ''), ('resize_side_nav', ['wider', 2]))
+        self.ae(resize_side_nav('resize_side_nav', 'reset'), ('resize_side_nav', ['reset', 2]))
+        with patch('kitty.options.utils.log_error'):
+            self.ae(resize_side_nav('resize_side_nav', 'sideways x'), ('resize_side_nav', ['wider', 2]))
+
+    def test_width_is_saved_and_cleared(self):
+        from kitty import side_nav_width as snw
+
+        with tempfile.TemporaryDirectory() as tdir, patch.object(snw, 'width_path', lambda: os.path.join(tdir, 'side-nav.json')):
+            self.ae(snw.saved_width(30), 0)
+            snw.save_width(42, 30)
+            self.ae(snw.saved_width(30), 42)
+            # Editing side_nav_width makes the option apply again
+            self.ae(snw.saved_width(36), 0)
+            snw.save_width(0, 30)
+            self.ae(snw.saved_width(30), 0)
+            self.assertFalse(os.path.exists(snw.width_path()))
+            write(snw.width_path(), '{"width": 3, "option": 30}')
+            self.ae(snw.saved_width(30), 0)
+            write(snw.width_path(), 'not json')
+            with patch.object(snw, 'log_error') as log:
+                self.ae(snw.saved_width(30), 0)
+            log.assert_called_once()
+
+
+class TestMainProgram(BaseTest):
+    def test_the_topmost_program_names_the_window(self):
+        from kitty.side_nav import main_program
+
+        agy = (10, 1, ['/home/u/.local/bin/agy', '--conversation', 'x'])
+        uvx = (11, 10, ['/home/u/.local/bin/uv', 'tool', 'uvx', 'blender-mcp'])
+        mcp = (12, 11, ['/cache/bin/python', '/cache/bin/blender-mcp'])
+        self.ae(main_program([mcp, uvx, agy]), 'agy')
+        # A restored tab runs the agent from a posix shell in the same group
+        shell = (9, 1, ['/bin/bash', '--posix'])
+        self.ae(main_program([shell, (10, 9, agy[2]), uvx, mcp]), 'agy')
+        self.ae(main_program([(20, 1, ['vim', 'a.py'])]), 'vim')
+        self.ae(main_program([shell]), '')
+        self.ae(main_program([]), '')
+        # Separate roots, as in a pipeline, go in pid order
+        self.ae(main_program([(31, 1, ['less']), (30, 1, ['grep', 'x'])]), 'grep')
+
+    def test_parent_pid_of_this_process(self):
+        from kitty.side_nav_tabs import parent_pid
+
+        self.ae(parent_pid(os.getpid()), os.getppid())
+        self.ae(parent_pid(-5), -1)

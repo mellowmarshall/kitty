@@ -325,6 +325,23 @@ def resize_window(func: str, rest: str) -> FuncArgsType:
     return func, args
 
 
+@func_with_args('resize_side_nav')
+def resize_side_nav(func: str, rest: str) -> FuncArgsType:
+    from ..side_nav_width import QUALITIES
+    vals = rest.strip().split()
+    quality = vals[0].lower() if vals else 'wider'
+    if quality not in QUALITIES:
+        log_error(f'Invalid side nav resize: {quality}')
+        quality = 'wider'
+    increment = 2
+    if len(vals) > 1:
+        try:
+            increment = int(vals[1])
+        except Exception:
+            log_error(f'Invalid side nav resize increment: {vals[1]}')
+    return func, [quality, increment]
+
+
 @func_with_args('move_window')
 def move_window(func: str, rest: str) -> FuncArgsType:
     rest = rest.lower()

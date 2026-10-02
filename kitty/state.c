@@ -604,6 +604,7 @@ remove_os_window(id_type os_window_id) {
     make_os_window_context_current(os_window);
     END_WITH_OS_WINDOW
     if (found) {
+        if (global_state.side_nav_being_resized == os_window_id) global_state.side_nav_being_resized = 0;
         WITH_OS_WINDOW_REFS
         REMOVER(global_state.os_windows, os_window_id, global_state.num_os_windows, destroy_os_window_item, global_state.capacity);
         END_WITH_OS_WINDOW_REFS
@@ -770,7 +771,8 @@ os_window_side_nav_region(const OSWindow *os_window, Region *side_nav) {
     if (!os_window_side_nav_visible(os_window)) return;
     unsigned cell_width = MAX(1u, os_window->fonts_data->fcm.cell_width);
     // Never take more than half the OS window so the terminal stays usable.
-    unsigned cols = MIN((unsigned)OPT(side_nav_width), os_window->viewport_width / 2u / cell_width);
+    unsigned requested = os_window->side_nav_cols ? os_window->side_nav_cols : (unsigned)OPT(side_nav_width);
+    unsigned cols = MIN(requested, os_window->viewport_width / 2u / cell_width);
     if (!cols) return;
     unsigned width = cols * cell_width;
     side_nav->top = 0;
@@ -782,6 +784,17 @@ os_window_side_nav_region(const OSWindow *os_window, Region *side_nav) {
         side_nav->left = 0;
         side_nav->right = width;
     }
+}
+
+unsigned
+os_window_side_nav_cols(const OSWindow *os_window, double x) {
+    // The width, in whole columns, that puts the side nav's inner edge nearest x,
+    // at most the half of the OS window that the side nav may take
+    if (!os_window->fonts_data) return 0;
+    unsigned cell_width = MAX(1u, os_window->fonts_data->fcm.cell_width);
+    double width = OPT(side_nav_edge) == RIGHT_EDGE ? os_window->viewport_width - x : x;
+    unsigned cols = width <= 0 ? 0 : (unsigned)(width / cell_width + 0.5);
+    return MIN(cols, os_window->viewport_width / 2u / cell_width);
 }
 
 static unsigned
@@ -1363,6 +1376,21 @@ PYWRAP1(set_side_nav_hidden) {
     WITH_OS_WINDOW(os_window_id)
     if (os_window->side_nav_hidden == (bool)hidden) Py_RETURN_FALSE;
     os_window->side_nav_hidden = hidden;
+    os_window->side_nav_data_updated = false;
+    os_window->needs_render = true;
+    Py_RETURN_TRUE;
+    END_WITH_OS_WINDOW
+    Py_RETURN_FALSE;
+}
+
+PYWRAP1(set_side_nav_cols) {
+    // Returns True when the width changed, so the caller knows to relayout.
+    id_type os_window_id;
+    unsigned int cols;
+    PA("KI", &os_window_id, &cols);
+    WITH_OS_WINDOW(os_window_id)
+    if (os_window->side_nav_cols == cols) Py_RETURN_FALSE;
+    os_window->side_nav_cols = cols;
     os_window->side_nav_data_updated = false;
     os_window->needs_render = true;
     Py_RETURN_TRUE;
@@ -2162,6 +2190,7 @@ static PyMethodDef module_methods[] = {
     MW(set_side_nav_render_data, METH_VARARGS),
     MW(mark_side_nav_dirty, METH_VARARGS),
     MW(set_side_nav_hidden, METH_VARARGS),
+    MW(set_side_nav_cols, METH_VARARGS),
     MW(side_nav_region, METH_VARARGS),
     MW(set_window_title_bar_render_data, METH_VARARGS),
     MW(set_window_render_data, METH_VARARGS),

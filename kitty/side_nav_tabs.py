@@ -18,11 +18,13 @@ from .fast_data_types import (
     mark_side_nav_dirty,
     monotonic,
     remove_timer,
+    set_side_nav_cols,
     set_side_nav_hidden,
     side_nav_region,
 )
-from .side_nav import SideNav, SideNavTabInput, build_groups, most_urgent_agent_state, program_name
+from .side_nav import SideNav, SideNavTabInput, build_groups, main_program, most_urgent_agent_state, program_name
 from .side_nav_repo import RepoCache
+from .side_nav_width import lowest_width, resized, saved_width
 from .utils import path_from_osc7_url
 
 if TYPE_CHECKING:
@@ -44,6 +46,17 @@ ECHO_WINDOW = 1.0
 # redrawing after a resize, is not work. Output must arrive again at least this
 # much later before the program counts as working.
 REPEAT_GAP = 0.3
+
+
+def parent_pid(pid: int) -> int:
+    "-1 when unknown, such as on systems without /proc"
+    try:
+        with open(f'/proc/{pid}/stat', 'rb') as f:
+            stat = f.read()
+        # The command name may hold spaces or parentheses, the fields after it do not
+        return int(stat[stat.rindex(b')') + 2 :].split()[1])
+    except Exception:
+        return -1
 
 
 def is_recent_output(output_ago: float) -> bool:
@@ -102,6 +115,12 @@ class SideNavController:
         self.known_group_keys: dict[int, str] = {}
         self.timer = 0
         self.sync_timer()
+        # The width asked for, zero for the side_nav_width option, and what was
+        # asked for and shown when a border drag started (None with no drag)
+        self.requested = saved_width(get_options().side_nav_width)
+        self.drag_from: tuple[int, int] | None = None
+        self.drag_moved = False
+        set_side_nav_cols(self.os_window_id, self.requested)
 
     def sync_timer(self) -> None:
         # cwds, branches and program activity change without any tab event, so poll for them
@@ -136,7 +155,12 @@ class SideNavController:
         # Reading the foreground program scans /proc, and updates come several
         # times a second while titles animate, so reuse it like the cwd.
         if (name := self.programs.get(w.id)) is None:
-            self.programs[w.id] = name = program_name(w.child.foreground_cmdline)
+            procs = [(p['pid'], parent_pid(p['pid']), p['cmdline']) for p in w.child.foreground_processes if p['cmdline']]
+            if procs and all(ppid >= 0 for _, ppid, _ in procs):
+                name = main_program(procs)
+            else:
+                name = program_name(w.child.foreground_cmdline)
+            self.programs[w.id] = name
         return name
 
     def group_key(self, tab: 'Tab') -> str:
@@ -228,6 +252,58 @@ class SideNavController:
             self.tm.resize()
             self.tm.mark_tab_bar_dirty()
 
+    @property
+    def cols(self) -> int:
+        "The width shown now, which the OS window size may hold below the one asked for"
+        return side_nav_region(self.os_window_id).width // max(1, self.nav.cell_width)
+
+    def apply_width(self, cols: int, only_active_tab: bool = False) -> bool:
+        "Zero follows the side_nav_width option. True when the width shown changed."
+        before = self.cols
+        self.requested = cols
+        set_side_nav_cols(self.os_window_id, cols)
+        if self.cols == before:
+            return False
+        # The central area changed size, so tabs must relayout. While a border is
+        # dragged only the visible tab does, the others once the drag ends.
+        if not only_active_tab:
+            self.tm.resize()
+        else:
+            if self.tm.tab_bar_hidden:
+                self.nav.layout()
+            else:
+                self.tm.layout_tab_bar()
+            if (tab := self.tm.active_tab) is not None:
+                tab.relayout()
+        self.tm.mark_tab_bar_dirty()
+        return True
+
+    def drag(self, cols: int, ended: bool) -> int | None:
+        "Follow a border drag. Returns the width to apply everywhere and save, once it ends."
+        cols = max(lowest_width(get_options().side_nav_width), cols)
+        if self.drag_from is None:
+            self.drag_from, self.drag_moved = (self.requested, self.cols), False
+        if not ended:
+            self.drag_moved |= self.apply_width(cols, only_active_tab=True)
+            return None
+        (requested, shown), self.drag_from = self.drag_from, None
+        if cols == shown:
+            # A click on the border, or a drag that came back to where it
+            # began, changes nothing: keep what was asked for, unsaved
+            self.apply_width(requested, only_active_tab=True)
+        if self.drag_moved:
+            # The other tabs did not follow the drag
+            self.tm.resize()
+        return cols if cols != shown else None
+
+    def resized_width(self, quality: str, increment: int) -> int | None:
+        "The width a resize_side_nav action asks for, None when there is nothing to resize"
+        if quality == 'reset':
+            return 0
+        if not self.is_visible:
+            return None
+        return resized(self.cols, quality, increment, lowest_width(get_options().side_nav_width))
+
     def handle_mouse(self, x: float, y: float, button: int, modifiers: int, action: int) -> None:
         if button != GLFW_MOUSE_BUTTON_LEFT or action != GLFW_PRESS:
             return
@@ -250,6 +326,8 @@ class SideNavController:
     def apply_options(self) -> None:
         self.nav.apply_options()
         self.sync_timer()
+        # A saved width replaces only the side_nav_width it was chosen over
+        self.apply_width(saved_width(get_options().side_nav_width))
 
     def destroy(self) -> None:
         if self.timer:

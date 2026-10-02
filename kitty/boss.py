@@ -1291,6 +1291,35 @@ class Boss:
         if tm := self.active_tab_manager_with_dispatch:
             tm.side_nav.toggle()
 
+    @ac(
+        'tab',
+        """
+        Resize the side nav, by a number of columns
+
+        For example::
+
+            map kitty_mod+alt+] resize_side_nav wider 2
+            map kitty_mod+alt+[ resize_side_nav narrower 2
+            map kitty_mod+alt+0 resize_side_nav reset
+
+        :code:`reset` goes back to :opt:`side_nav_width`. The width is also changed
+        by dragging the inner edge of the side nav. It applies to every OS window
+        and is kept for new OS windows and after kitty restarts, until
+        :opt:`side_nav_width` is changed.
+        """,
+    )
+    def resize_side_nav(self, quality: str = 'wider', increment: int = 2) -> None:
+        if (tm := self.active_tab_manager_with_dispatch) and (cols := tm.side_nav.resized_width(quality, increment)) is not None:
+            self.set_side_nav_width(cols)
+
+    def set_side_nav_width(self, cols: int) -> None:
+        "One width for the side nav of every OS window, zero for side_nav_width"
+        from .side_nav_width import save_width
+
+        for tm in self.os_window_map.values():
+            tm.side_nav.apply_width(cols)
+        save_width(cols, get_options().side_nav_width)
+
     @ac('tab', 'Close all the tabs in the current OS window other than the currently active tab')
     def close_other_tabs_in_os_window(self) -> None:
         tm = self.active_tab_manager_with_dispatch
@@ -1573,6 +1602,12 @@ class Boss:
     def handle_side_nav_mouse(self, os_window_id: int, x: float, y: float, button: int, modifiers: int, action: int) -> None:
         if tm := self.os_window_map.get(os_window_id):
             tm.side_nav.handle_mouse(x, y, button, modifiers, action)
+
+    def handle_side_nav_resize(self, os_window_id: int, cols: int, ended: bool) -> None:
+        # Called while the side nav border is dragged; once it ends, a changed
+        # width applies to every OS window and is saved
+        if (tm := self.os_window_map.get(os_window_id)) and (final := tm.side_nav.drag(cols, ended)) is not None:
+            self.set_side_nav_width(final)
 
     def handle_side_nav_scroll(self, os_window_id: int, offset: float, offset_type: int) -> None:
         if tm := self.os_window_map.get(os_window_id):

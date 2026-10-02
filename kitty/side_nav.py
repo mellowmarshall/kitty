@@ -7,6 +7,7 @@
 # window in C (os_window_side_nav_region), exactly like the tab bar does.
 
 import re
+from collections import defaultdict, deque
 from collections.abc import Callable, Iterable, Sequence
 from typing import Literal, NamedTuple
 
@@ -182,6 +183,25 @@ def program_name(cmdline: Sequence[str]) -> str:
                     return part
         return script
     return base
+
+
+def main_program(processes: Iterable[tuple[int, int, Sequence[str]]]) -> str:
+    """The program that names a window, from (pid, parent pid, command line) of
+    its foreground process group: the topmost one that is not a shell. Helpers
+    that program started, such as the MCP servers of an agent, do not."""
+    procs = sorted(processes)
+    pids = {pid for pid, _, _ in procs}
+    roots: list[tuple[int, Sequence[str]]] = []
+    children: defaultdict[int, list[tuple[int, Sequence[str]]]] = defaultdict(list)
+    for pid, ppid, cmdline in procs:
+        (children[ppid] if ppid in pids else roots).append((pid, cmdline))
+    queue = deque(roots)
+    while queue:
+        pid, cmdline = queue.popleft()
+        if name := program_name(cmdline):
+            return name
+        queue.extend(children[pid])
+    return ''
 
 
 def names_program(title: str, program: str) -> bool:

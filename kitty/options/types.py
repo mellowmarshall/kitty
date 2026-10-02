@@ -991,6 +991,14 @@ defaults.map = [
     KeyDefinition(trigger=SingleKey(mods=256, key=44), definition='move_tab_backward'),
     # set_tab_title
     KeyDefinition(trigger=SingleKey(mods=258, key=116), options=KeyMapOptions(when_focus_on='', new_mode='', mode='', on_unknown='beep', on_action='keep', timeout=None, allow_fallback=(KeyFallbackType.shifted, KeyFallbackType.alternate)), definition='set_tab_title'),
+    # toggle_side_nav
+    KeyDefinition(trigger=SingleKey(mods=258, key=115), options=KeyMapOptions(when_focus_on='', new_mode='', mode='', on_unknown='beep', on_action='keep', timeout=None, allow_fallback=(KeyFallbackType.shifted, KeyFallbackType.alternate)), definition='toggle_side_nav'),
+    # side_nav_wider
+    KeyDefinition(trigger=SingleKey(mods=258, key=93), options=KeyMapOptions(when_focus_on='', new_mode='', mode='', on_unknown='beep', on_action='keep', timeout=None, allow_fallback=(KeyFallbackType.shifted, KeyFallbackType.alternate)), definition='resize_side_nav wider 2'),
+    # side_nav_narrower
+    KeyDefinition(trigger=SingleKey(mods=258, key=91), options=KeyMapOptions(when_focus_on='', new_mode='', mode='', on_unknown='beep', on_action='keep', timeout=None, allow_fallback=(KeyFallbackType.shifted, KeyFallbackType.alternate)), definition='resize_side_nav narrower 2'),
+    # side_nav_reset
+    KeyDefinition(trigger=SingleKey(mods=258, key=48), options=KeyMapOptions(when_focus_on='', new_mode='', mode='', on_unknown='beep', on_action='keep', timeout=None, allow_fallback=(KeyFallbackType.shifted, KeyFallbackType.alternate)), definition='resize_side_nav reset'),
     # next_layout
     KeyDefinition(trigger=SingleKey(mods=256, key=108), options=KeyMapOptions(when_focus_on='', new_mode='', mode='', on_unknown='beep', on_action='keep', timeout=None, allow_fallback=(KeyFallbackType.shifted, KeyFallbackType.alternate)), definition='next_layout'),
     # increase_font_size
