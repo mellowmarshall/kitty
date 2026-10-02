@@ -1263,6 +1263,9 @@ def mark_side_nav_dirty(os_window_id: int) -> None:
 def set_side_nav_hidden(os_window_id: int, hidden: bool) -> bool:
     pass
 
+def set_side_nav_cols(os_window_id: int, cols: int) -> bool:
+    pass
+
 def side_nav_region(os_window_id: int) -> Region:
     pass
 

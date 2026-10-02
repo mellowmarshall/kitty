@@ -2525,7 +2525,10 @@ The width (in cells) of the side nav, a sidebar that lists every tab in the OS
 window grouped by the git repository of the tab's active window. It is shown in
 addition to the tab bar, so you can keep tabs on the top edge and repositories
 on the side. A value of zero disables it. Use the :ac:`toggle_side_nav` action
-to show or hide it at runtime.
+to show or hide it at runtime. Drag its inner edge, or use the
+:ac:`resize_side_nav` action, to change its width in every OS window. That
+width is kept for new OS windows and after kitty restarts, until this option is
+changed or the width is reset.
 """,
 )
 
@@ -4345,6 +4348,26 @@ map(
 map(
     'Set tab title',
     'set_tab_title --allow-fallback=shifted,ascii kitty_mod+alt+t set_tab_title',
+)
+
+map(
+    'Toggle the side nav',
+    'toggle_side_nav --allow-fallback=shifted,ascii kitty_mod+alt+s toggle_side_nav',
+)
+
+map(
+    'Make the side nav wider',
+    'side_nav_wider --allow-fallback=shifted,ascii kitty_mod+alt+] resize_side_nav wider 2',
+)
+
+map(
+    'Make the side nav narrower',
+    'side_nav_narrower --allow-fallback=shifted,ascii kitty_mod+alt+[ resize_side_nav narrower 2',
+)
+
+map(
+    'Reset the side nav width',
+    'side_nav_reset --allow-fallback=shifted,ascii kitty_mod+alt+0 resize_side_nav reset',
 )
 map(
     'Set tab title',
