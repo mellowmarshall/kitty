@@ -11,6 +11,7 @@ from kitty.side_nav import (
     SideNavTabInput,
     build_groups,
     most_urgent_agent_state,
+    names_program,
     program_name,
     rows_for_groups,
 )
@@ -145,8 +146,22 @@ class TestSideNav(BaseTest):
             (['nvim', 'notes.md'], 'nvim'),
             (['node'], 'node'),
             ([], ''),
+            (['python3', '-c', 'import x; x.run()'], 'python'),
+            (['python', '-W', 'ignore', 's.py'], 's'),
+            (['node', '--require', 'ts-node/register', 'app.js'], 'app'),
+            (['python3', '-m', 'http.server', '8000'], 'http'),
+            (['npm exec foo'], 'npm'),
+            (['node', '/usr/lib/node_modules/@scope/tool/dist/index.js'], 'tool'),
+            (['sudo', 'vim', '/etc/hosts'], 'vim'),
+            (['env', 'FOO=1', '-i', 'htop'], 'htop'),
+            (['/bin/zsh-5.9'], ''),
+            (['pypy3', 'bench.py'], 'bench'),
         ):
             self.ae(program_name(cmdline), expected, cmdline)
+        self.assertTrue(names_program('top', 'top'))
+        self.assertTrue(names_program('codex: fix login', 'codex'))
+        self.assertFalse(names_program('desktop notes', 'top'))
+        self.assertFalse(names_program('review PR', 'vi'))
 
     def test_shorten_path(self):
         self.ae(shorten_path('/home/u', '/home/u'), '~')

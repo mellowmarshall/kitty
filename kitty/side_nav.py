@@ -124,25 +124,68 @@ def region_key(r: Region) -> tuple[int, int, int, int]:
 
 
 SHELLS = frozenset({'bash', 'zsh', 'fish', 'sh', 'dash', 'ksh', 'tcsh', 'nu', 'xonsh'})
-INTERPRETERS = frozenset({'node', 'python', 'python3', 'bun', 'deno', 'ruby', 'perl'})
+INTERPRETERS = frozenset({
+    'node', 'nodejs', 'python', 'pypy', 'bun', 'deno', 'ruby', 'perl', 'php', 'lua', 'luajit', 'tsx', 'ts-node',
+})  # fmt: skip
+# Commands that run another command named later on their command line.
+WRAPPERS = frozenset({'sudo', 'doas', 'env', 'nice', 'ionice', 'nohup', 'time', 'stdbuf', 'chrt', 'taskset'})
+# Interpreter options whose next argument is a value, not the script.
+VALUE_OPTIONS = frozenset({'-W', '-X', '-r', '--require', '--import', '--loader', '-I', '--experimental-loader'})
+# Script names that say nothing on their own; the directory names the program.
+GENERIC_SCRIPTS = frozenset({'cli', 'index', 'main', '__main__', 'run', 'bin', 'app', 'start'})
+
+
+def _base(path: str) -> str:
+    name = path.rsplit('/', 1)[-1].lstrip('-')
+    return re.sub(r'(?<=[a-z])[-.]?[0-9][0-9.]*$', '', name)  # python3.12, zsh-5.9
 
 
 def program_name(cmdline: Sequence[str]) -> str:
     """A short name for the program a command line runs, '' for a shell.
 
-    Interpreters name their script instead, so an npm-installed codex shows
-    as codex rather than node."""
-    if not cmdline:
+    Interpreters name their script, so an npm-installed codex shows as codex
+    rather than node; wrappers such as sudo or env name what they run."""
+    args = list(cmdline)
+    if len(args) == 1 and ' ' in args[0]:
+        args = args[0].split()  # a process that rewrote its own title
+    while args and _base(args[0]) in WRAPPERS:
+        args = args[1:]
+        while args and (args[0].startswith('-') or '=' in args[0]):
+            args = args[1:]
+    if not args:
         return ''
-    name = cmdline[0].rsplit('/', 1)[-1].lstrip('-')
-    base = re.sub(r'[0-9.]+$', '', name)
-    if base in INTERPRETERS:
-        script = next((arg for arg in cmdline[1:] if not arg.startswith('-')), '')
-        if script:
-            name = re.sub(r'\.(m?js|cjs|py)$', '', script.rsplit('/', 1)[-1])
-    elif base in SHELLS:
+    base = _base(args[0])
+    if base in SHELLS:
         return ''
-    return name
+    if base not in INTERPRETERS:
+        return args[0].rsplit('/', 1)[-1].lstrip('-')
+    rest = args[1:]
+    index = 0
+    while index < len(rest):
+        arg = rest[index]
+        if arg in ('-c', '-e', '--eval', '-p', '--print'):
+            return base  # inline code, no script to name
+        if arg == '-m' and index + 1 < len(rest):
+            return rest[index + 1].split('.')[0]
+        if arg in VALUE_OPTIONS:
+            index += 2
+            continue
+        if arg.startswith('-'):
+            index += 1
+            continue
+        parts = arg.split('/')
+        script = re.sub(r'\.(m?js|cjs|ts|py|rb|pl|php|lua)$', '', parts[-1])
+        if script in GENERIC_SCRIPTS and len(parts) > 1:
+            # .../codex/bin/index.js names codex; skip generic directories too
+            for part in reversed(parts[:-1]):
+                if part and part not in GENERIC_SCRIPTS and part not in ('dist', 'lib', 'src', 'build', 'node_modules'):
+                    return part
+        return script
+    return base
+
+
+def names_program(title: str, program: str) -> bool:
+    return re.search(rf'(?<![\w-]){re.escape(program.lower())}(?![\w-])', title.lower()) is not None
 
 
 def fit(text: str, width: int) -> str:
@@ -340,13 +383,17 @@ class SideNav:
             badge_width = wcswidth(badge) + 1 if badge else 0
             room = width - len(prefix) - badge_width
             # The running program sits at the right, unless the title already names it
-            program = t.program if t.program and t.program.lower() not in t.title.lower() else ''
-            program_width = min(wcswidth(program), max(0, room // 2 - 1)) if program else 0
+            program = control_chars.sub('', t.program) if t.program and not names_program(t.title, t.program) else ''
+            program_width = min(max(0, wcswidth(program)), max(0, room // 2 - 1)) if program else 0
+            if program_width < 3:
+                program_width = 0  # too narrow to say anything useful
+            # one column of gap between the title and the program, one before the badge
+            title_room = max(1, room - (program_width + 2 if program_width else 0))
             self.draw_text(prefix, c.dim_fg if not t.is_active else fg, bg)
-            self.draw_text(fit(t.title, max(1, room - (program_width + 1 if program_width else 0))), fg, bg, bold=t.is_active)
+            self.draw_text(fit(t.title, title_room), fg, bg, bold=t.is_active)
             if program_width:
                 s.cursor.x, s.cursor.y = width - badge_width - program_width - 1, line
-                self.draw_text(fit(program, program_width), c.dim_fg if not t.is_active else fg, bg)
+                self.draw_text(fit(program, program_width), c.dim_fg, bg)
             if badge:
                 self.draw_badge(line, badge, badge_fg, bg)
 
