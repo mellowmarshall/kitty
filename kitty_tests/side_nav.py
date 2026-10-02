@@ -470,8 +470,11 @@ class TestWorkDir(BaseTest):
 
         c = SideNavController.__new__(SideNavController)
         c.proc_cwds = {}
-        c.programs = {1: 'agent'}
-        w = SimpleNamespace(id=1, user_vars={}, child_is_remote=False, screen=SimpleNamespace(last_reported_cwd=''), get_cwd_of_child=lambda: '/start')
+        child = SimpleNamespace(foreground_pgrp=500)
+        w = SimpleNamespace(
+            id=1, user_vars={}, child=child, side_nav_cwd_pgrp=500, child_is_remote=False,
+            screen=SimpleNamespace(last_reported_cwd=''), get_cwd_of_child=lambda: '/start',
+        )  # fmt: skip
         self.set_options({'side_nav_cwd_var': 'work_dir'})
         self.ae(c.work_dir(w), '/start')
         w.user_vars['work_dir'] = '/data/wt'
@@ -483,15 +486,28 @@ class TestWorkDir(BaseTest):
         w.user_vars['work_dir'] = '/' + 'x' * 5000  # longer than any real path
         self.ae(c.work_dir(w), '/start')
         w.user_vars['work_dir'] = '/data/wt'
-        c.programs[1] = ''  # the program exited, its report no longer applies
+        child.foreground_pgrp = 600  # the program that set it exited, another runs now
         self.ae(c.work_dir(w), '/start')
-        c.programs[1] = 'agent'
+        child.foreground_pgrp = 500
         w.child_is_remote = True  # a path on another host
         self.ae(c.work_dir(w), '/start')
         w.child_is_remote = False
         self.set_options({'side_nav_cwd_var': ''})
-        w.user_vars['work_dir'] = '/data/wt'
         self.ae(c.work_dir(w), '/start')
+
+    def test_the_variable_belongs_to_the_foreground_program(self):
+        from kitty.window import Window
+
+        w = Window.__new__(Window)
+        w.user_vars, w.os_window_id, w.side_nav_cwd_pgrp = {}, 0, -1
+        w.child = type('C', (), {'foreground_pgrp': 777})()
+        w.call_watchers = lambda *a: None
+        w.watchers = type('W', (), {'on_set_user_var': ()})()
+        self.set_options({'side_nav_cwd_var': 'work_dir'})
+        w.set_user_var('other', 'x')
+        self.ae(w.side_nav_cwd_pgrp, -1)
+        w.set_user_var('work_dir', '/data/wt')
+        self.ae((w.side_nav_cwd_pgrp, w.user_vars['work_dir']), (777, '/data/wt'))
 
 
 class TestStateVar(BaseTest):
