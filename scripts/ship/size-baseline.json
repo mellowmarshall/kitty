@@ -181,20 +181,20 @@
    "reason": "upstream kitty file"
   },
   "kitty/boss.py": {
-   "lines": 4137,
-   "reason": "upstream kitty file"
+   "lines": 4251,
+   "reason": "upstream kitty file; the fork adds 114 lines"
   },
   "kitty/char-props-data.h": {
    "lines": 3046,
    "reason": "upstream kitty file"
   },
   "kitty/child-monitor.c": {
-   "lines": 2403,
-   "reason": "upstream kitty file"
+   "lines": 2424,
+   "reason": "upstream kitty file; the fork adds 21 lines"
   },
   "kitty/child.py": {
-   "lines": 709,
-   "reason": "upstream kitty file"
+   "lines": 717,
+   "reason": "upstream kitty file; the fork adds 8 lines"
   },
   "kitty/cli.py": {
    "lines": 747,
@@ -297,8 +297,8 @@
    "reason": "upstream kitty file"
   },
   "kitty/keys.c": {
-   "lines": 689,
-   "reason": "upstream kitty file"
+   "lines": 691,
+   "reason": "upstream kitty file; the fork adds 2 lines"
   },
   "kitty/launch.py": {
    "lines": 1451,
@@ -333,44 +333,44 @@
    "reason": "upstream kitty file"
   },
   "kitty/mouse.c": {
-   "lines": 1851,
-   "reason": "upstream kitty file"
+   "lines": 1923,
+   "reason": "upstream kitty file; the fork adds 72 lines"
   },
   "kitty/notifications.py": {
    "lines": 1112,
    "reason": "upstream kitty file"
   },
   "kitty/options/definition.py": {
-   "lines": 4805,
-   "reason": "upstream kitty file"
+   "lines": 4917,
+   "reason": "upstream kitty file; the fork adds 112 lines"
   },
   "kitty/options/parse.py": {
-   "lines": 1688,
-   "reason": "upstream kitty file"
+   "lines": 1706,
+   "reason": "upstream kitty file; the fork adds 18 lines"
   },
   "kitty/options/to-c-generated.h": {
-   "lines": 1825,
-   "reason": "upstream kitty file"
+   "lines": 1856,
+   "reason": "upstream kitty file; the fork adds 31 lines"
   },
   "kitty/options/to-c.h": {
    "lines": 758,
    "reason": "upstream kitty file"
   },
   "kitty/options/types.py": {
-   "lines": 1728,
-   "reason": "upstream kitty file"
+   "lines": 1756,
+   "reason": "upstream kitty file; the fork adds 28 lines"
   },
   "kitty/options/utils.py": {
-   "lines": 1944,
-   "reason": "upstream kitty file"
+   "lines": 1974,
+   "reason": "upstream kitty file; the fork adds 30 lines"
   },
   "kitty/remote_control.py": {
    "lines": 531,
    "reason": "upstream kitty file"
   },
   "kitty/screen.c": {
-   "lines": 7272,
-   "reason": "upstream kitty file"
+   "lines": 7286,
+   "reason": "upstream kitty file; the fork adds 14 lines"
   },
   "kitty/session.py": {
    "lines": 743,
@@ -393,20 +393,20 @@
    "reason": "upstream kitty file"
   },
   "kitty/state.c": {
-   "lines": 2173,
-   "reason": "upstream kitty file"
+   "lines": 2291,
+   "reason": "upstream kitty file; the fork adds 118 lines"
   },
   "kitty/state.h": {
-   "lines": 810,
-   "reason": "upstream kitty file"
+   "lines": 826,
+   "reason": "upstream kitty file; the fork adds 16 lines"
   },
   "kitty/tab_bar.py": {
-   "lines": 1271,
-   "reason": "upstream kitty file"
+   "lines": 1273,
+   "reason": "upstream kitty file; the fork adds 2 lines"
   },
   "kitty/tabs.py": {
-   "lines": 2432,
-   "reason": "upstream kitty file"
+   "lines": 2448,
+   "reason": "upstream kitty file; the fork adds 16 lines"
   },
   "kitty/terminfo.py": {
    "lines": 576,
@@ -421,8 +421,8 @@
    "reason": "upstream kitty file"
   },
   "kitty/window.py": {
-   "lines": 2944,
-   "reason": "upstream kitty file"
+   "lines": 2954,
+   "reason": "upstream kitty file; the fork adds 10 lines"
   },
   "kitty/window_list.py": {
    "lines": 769,
@@ -488,6 +488,10 @@
    "lines": 594,
    "reason": "upstream kitty file"
   },
+  "kitty_tests/side_nav.py": {
+   "lines": 710,
+   "reason": "the fork's test suite"
+  },
   "kitty_tests/slang.py": {
    "lines": 581,
    "reason": "upstream kitty file"
@@ -533,8 +537,8 @@
    "reason": "upstream kitty file"
   },
   "tools/themes/collection.go": {
-   "lines": 943,
-   "reason": "upstream kitty file"
+   "lines": 944,
+   "reason": "upstream kitty file; the fork adds 1 lines"
   },
   "tools/tui/graphics/command.go": {
    "lines": 845,

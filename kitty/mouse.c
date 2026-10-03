@@ -989,6 +989,21 @@ handle_tab_bar_mouse(int button, int modifiers, int action) {
     }
 }
 
+static void
+handle_side_nav_mouse(int button, int modifiers, int action) {
+    set_currently_hovered_window(0, modifiers, false);
+    OSWindow *w = global_state.callback_os_window;
+    if (!w || button < 0) return;  // motion events are not reported, the side nav only reacts to clicks
+    if (button == GLFW_MOUSE_BUTTON_LEFT) {
+        // A release counts only when its press was in this side nav too: a drag
+        // that starts in a window or the tab bar can end over the side nav
+        if (action == GLFW_PRESS) global_state.side_nav_left_press = w->id;
+        else if (global_state.side_nav_left_press != w->id) return;
+        else global_state.side_nav_left_press = 0;
+    }
+    call_boss(handle_side_nav_mouse, "Kddiii", w->id, w->mouse_x, w->mouse_y, button, modifiers, action);
+}
+
 static bool
 mouse_in_region(Region *r) {
     if (r->left == r->right) return false;
@@ -1010,6 +1025,7 @@ num_visible_windows(Tab *t) {
 typedef struct MouseRegion {
     unsigned window_idx;
     bool in_tab_bar;
+    bool in_side_nav, on_side_nav_border;
     bool in_title_bar;
     Edge window_border;
     Window *window;
@@ -1020,6 +1036,18 @@ mouse_region(bool detect_borders, bool detect_title_bar) {
     MouseRegion ans = {0};
     Region central, tab_bar;
     const OSWindow *w = global_state.callback_os_window;
+    Region side_nav;
+    os_window_side_nav_region(w, &side_nav);
+    if (mouse_in_region(&side_nav)) {
+        ans.in_side_nav = true;
+        // The inner edge is a handle that drags the side nav wider or narrower,
+        // as wide as the tolerance for dragging window borders
+        double dpi = (w->fonts_data->logical_dpi_x + w->fonts_data->logical_dpi_y) / 2.;
+        double grip = MAX(2.0, round(OPT(window_drag_tolerance) * (dpi / 72.0)));
+        if (OPT(side_nav_edge) == RIGHT_EDGE) ans.on_side_nav_border = w->mouse_x < side_nav.left + grip;
+        else ans.on_side_nav_border = w->mouse_x >= side_nav.right - grip;
+        return ans;
+    }
     os_window_regions(w, &central, &tab_bar);
     const bool in_central = mouse_in_region(&central);
     if (!in_central) {
@@ -1158,7 +1186,9 @@ void
 update_mouse_pointer_shape(void) {
     mouse_cursor_shape = TEXT_POINTER;
     MouseRegion r = mouse_region(false, true);
-    if (r.in_tab_bar) {
+    if (r.on_side_nav_border || (global_state.side_nav_being_resized && global_state.callback_os_window && global_state.side_nav_being_resized == global_state.callback_os_window->id)) {
+        mouse_cursor_shape = EW_RESIZE_POINTER;
+    } else if (r.in_tab_bar || r.in_side_nav) {
         mouse_cursor_shape = POINTER_POINTER;
     } else if (r.in_title_bar) {
         mouse_cursor_shape = POINTER_POINTER;
@@ -1319,6 +1349,8 @@ mouse_event(const int button, int modifiers, int action) {
     unsigned int window_idx = 0;
     Window *w = NULL;
     OSWindow *osw = global_state.callback_os_window;
+    // Any left press forgets an earlier one in the side nav; a press there sets it again
+    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) global_state.side_nav_left_press = 0;
 
     if (OPT(debug_keyboard)) {
         if (button < 0) {
@@ -1402,6 +1434,22 @@ mouse_event(const int button, int modifiers, int action) {
             }
         }
     }
+    if (global_state.side_nav_being_resized) {
+        // Follow the pointer anywhere in the OS window until the button is released
+        if (global_state.side_nav_being_resized == osw->id) {
+            // Any button event ends the drag, as does motion with the button up:
+            // a window manager grab can take the release
+            const bool ended = button > -1 || !osw->mouse_button_pressed[GLFW_MOUSE_BUTTON_LEFT];
+            unsigned cols = os_window_side_nav_cols(osw, osw->mouse_x + global_state.side_nav_drag_offset);
+            call_boss(handle_side_nav_resize, "KIO", osw->id, cols, ended ? Py_True : Py_False);
+            if (!ended) return;
+        }
+        global_state.side_nav_being_resized = 0;
+        mouse_cursor_shape = DEFAULT_POINTER;
+        set_mouse_cursor(mouse_cursor_shape);
+        debug("side nav resize ended\n");
+        return;
+    }
     if (global_state.active_drag_resize) {
         if (button < 0) {
             call_boss(drag_resize_update, "dd", osw->mouse_x, osw->mouse_y);
@@ -1418,12 +1466,31 @@ mouse_event(const int button, int modifiers, int action) {
     MouseRegion r = mouse_region(true, true);
     w = r.window;
     window_idx = r.window_idx;
+    // Clicks, and motion for programs that track it, make programs redraw
+    if (w && w->render_data.screen && (button >= 0 || w->render_data.screen->modes.mouse_tracking_mode >= MOTION_MODE))
+        w->render_data.screen->last_stimulus_at = monotonic();
     set_currently_hovered_window(w && !r.window_border && !r.in_title_bar ? w->id : 0, modifiers, true);
 
     if (r.in_tab_bar || global_state.tab_being_dragged.id) {
         mouse_cursor_shape = POINTER_POINTER;
         handle_tab_bar_mouse(button, modifiers, action);
         debug("handled by tab bar\n");
+    } else if (r.on_side_nav_border && !global_state.window_being_dragged.id) {
+        mouse_cursor_shape = EW_RESIZE_POINTER;
+        if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
+            // Keep the border where it was grabbed, so a click does not move it
+            Region side_nav;
+            os_window_side_nav_region(osw, &side_nav);
+            double edge = OPT(side_nav_edge) == RIGHT_EDGE ? side_nav.left : side_nav.right;
+            global_state.side_nav_drag_offset = edge - osw->mouse_x;
+            global_state.side_nav_being_resized = osw->id;
+        }
+        debug("side nav border\n");
+    } else if (r.in_side_nav && !global_state.window_being_dragged.id) {
+        // A window title bar drag must see its release even over the side nav
+        mouse_cursor_shape = POINTER_POINTER;
+        handle_side_nav_mouse(button, modifiers, action);
+        debug("handled by side nav\n");
     } else if ((r.in_title_bar && r.window) || global_state.window_being_dragged.id) {
         mouse_cursor_shape = POINTER_POINTER;
         Window *tw = r.window;
@@ -1594,7 +1661,12 @@ scroll_event(const GLFWScrollEvent *ev) {
         osw->mouse_y = mouse_y * osw->viewport_y_ratio;
     }
     MouseRegion r = mouse_region(false, true);
+    if (r.in_side_nav) {
+        if (ev->y_offset != 0) call_boss(handle_side_nav_scroll, "Kdi", osw->id, ev->y_offset, (int)ev->offset_type);
+        return;
+    }
     Window *w = r.window;
+    if (w && w->render_data.screen) w->render_data.screen->last_stimulus_at = monotonic();
     if (!w && !r.in_tab_bar) {
         // fallback to last active window
         Tab *t = osw->tabs + osw->active_tab;

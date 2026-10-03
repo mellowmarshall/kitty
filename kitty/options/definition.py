@@ -2517,6 +2517,82 @@ looks better.
 """,
 )
 
+opt(
+    'side_nav_width',
+    '0',
+    option_type='positive_int',
+    ctype='int',
+    long_text="""
+The width (in cells) of the side nav, a sidebar that lists every tab in the OS
+window grouped by the git repository of the tab's active window. It is shown in
+addition to the tab bar, so you can keep tabs on the top edge and repositories
+on the side. A value of zero disables it. Use the :ac:`toggle_side_nav` action
+to show or hide it at runtime. Drag its inner edge, or use the
+:ac:`resize_side_nav` action, to change its width in every OS window. That
+width is kept for new OS windows and after kitty restarts, until this option is
+changed or the width is reset.
+""",
+)
+
+opt(
+    'side_nav_edge',
+    'left',
+    option_type='side_nav_edge',
+    ctype='int',
+    long_text='The edge to show the side nav on, :code:`left` or :code:`right`.',
+)
+
+opt(
+    'side_nav_filter_tab_bar',
+    'yes',
+    option_type='to_bool',
+    long_text="""
+When the side nav is shown, the tab bar shows only the tabs of the selected
+project, which is the git repository of the active tab. Clicking a project in
+the side nav selects it. Switching to the next or previous tab, and going to a
+tab by number, also stay within the project.
+""",
+)
+
+opt(
+    'side_nav_state_var',
+    '',
+    long_text="""
+The name of a user variable in which programs report their state, shown as a
+badge on their tab in the side nav. The states are :code:`blocked`,
+:code:`waiting`, :code:`working` and :code:`done`, from most to least urgent.
+For example, with :code:`side_nav_state_var agent_state` a hook of a program
+can run :code:`kitten @ set-user-vars agent_state=waiting`. Programs that do not
+report a state show as working while they produce output, and as done until
+their tab is looked at.
+""",
+)
+
+opt(
+    'side_nav_cwd_var',
+    '',
+    long_text="""
+The name of a user variable in which programs report the directory they work
+in, an absolute path or a :code:`file://` URL. While a program runs in the
+window, the side nav uses it instead of the current directory of the program:
+to group the tab under its git repository, to show the branch under the program,
+and to select the project whose tabs the tab bar shows. This matters for
+programs that work in another worktree than the one they started in. For example, with
+:code:`side_nav_cwd_var work_dir` a status line script of the program can run
+:code:`kitten @ set-user-vars work_dir=/path/to/worktree`.
+""",
+)
+
+opt(
+    'side_nav_background',
+    'none',
+    option_type='to_color_or_none',
+    long_text="""
+Background color for the side nav. Defaults to :opt:`tab_bar_background`, or
+the terminal background if that is not set.
+""",
+)
+
 egr()  # }}}
 
 
@@ -4304,6 +4380,42 @@ map(
     'Set tab title',
     'set_tab_title --allow-fallback=shifted,ascii kitty_mod+alt+t set_tab_title',
 )
+
+map(
+    'Toggle the side nav',
+    'toggle_side_nav --allow-fallback=shifted,ascii kitty_mod+alt+s toggle_side_nav',
+)
+
+map(
+    'Make the side nav wider',
+    'side_nav_wider --allow-fallback=shifted,ascii kitty_mod+alt+] resize_side_nav wider 2',
+)
+
+map(
+    'Make the side nav narrower',
+    'side_nav_narrower --allow-fallback=shifted,ascii kitty_mod+alt+[ resize_side_nav narrower 2',
+)
+
+map(
+    'Reset the side nav width',
+    'side_nav_reset --allow-fallback=shifted,ascii kitty_mod+alt+0 resize_side_nav reset',
+)
+
+map(
+    'Move the side nav group up',
+    'side_nav_group_up kitty_mod+alt+page_up move_side_nav_group up',
+)
+
+map(
+    'Move the side nav group down',
+    'side_nav_group_down kitty_mod+alt+page_down move_side_nav_group down',
+)
+
+map(
+    'Collapse or expand the side nav group',
+    'side_nav_group_toggle --allow-fallback=shifted,ascii kitty_mod+alt+c toggle_side_nav_group',
+)
+
 map(
     'Set tab title',
     'set_tab_title --allow-fallback=shifted,ascii shift+cmd+i set_tab_title',

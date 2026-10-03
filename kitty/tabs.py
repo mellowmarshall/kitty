@@ -37,6 +37,7 @@ from .fast_data_types import (
     get_window_being_dragged,
     is_tab_bar_visible,
     last_focused_os_window_id,
+    mark_side_nav_dirty,
     mark_tab_bar_dirty,
     monotonic,
     next_window_id,
@@ -58,6 +59,7 @@ from .fast_data_types import (
 from .layout.base import DragOverlayMode, Layout
 from .layout.interface import all_layouts, create_layout_object_for, evict_cached_layouts
 from .progress import ProgressState
+from .side_nav_tabs import SideNavController
 from .tab_bar import TabBar, TabBarData, WindowDropTarget, apply_title_template
 from .types import DockSpec, ac
 from .typing_compat import EdgeLiteral, SessionTab, SessionType, TypedDict
@@ -1448,6 +1450,7 @@ class TabManager:  # {{{
         self.tabs: list[Tab] = []
         self.active_tab_history: Deque[int] = deque()
         self.tab_bar = TabBar(self.os_window_id)
+        self.side_nav = SideNavController(self)
         self._active_tab_idx = 0
 
         if startup_session is not None:
@@ -1541,7 +1544,9 @@ class TabManager:  # {{{
         tab_id, drag_started = get_tab_being_dragged()[:2]
         if drag_started and self.tab_for_id(tab_id) is not None:
             return True  # keep tab bar visible in the source
-        for t in self.tabs_to_be_shown_in_tab_bar:
+        # Count every tab, not just the selected project's, so that switching
+        # projects in the side nav does not show and hide the tab bar.
+        for t in self.tabs_matching_tab_bar_filter:
             count -= 1
             if count < 1:
                 return True
@@ -1558,6 +1563,7 @@ class TabManager:  # {{{
         # set tab_bar_should_be_visible so that tab_bar.layout() gets correct dimensions
         self.mark_tab_bar_dirty()
         self.tab_bar.layout()
+        self.side_nav.nav.layout()
 
     @property
     def any_window(self) -> Window | None:
@@ -1569,6 +1575,7 @@ class TabManager:  # {{{
     def mark_tab_bar_dirty(self) -> None:
         should_be_shown = not self.tab_bar_hidden and self.tab_bar_should_be_visible
         mark_tab_bar_dirty(self.os_window_id, should_be_shown)
+        mark_side_nav_dirty(self.os_window_id)
         w = self.active_window or self.any_window
         if w is not None:
             data = {'tab_manager': self}
@@ -1590,6 +1597,8 @@ class TabManager:  # {{{
         if not only_tabs:
             if not self.tab_bar_hidden:
                 self.layout_tab_bar()
+            else:
+                self.side_nav.nav.layout()
         for tab in self.tabs:
             tab.relayout()
 
@@ -1614,13 +1623,17 @@ class TabManager:  # {{{
         return True
 
     @property
-    def tabs_to_be_shown_in_tab_bar(self) -> Iterable[Tab]:
+    def tabs_matching_tab_bar_filter(self) -> Iterable[Tab]:
         f = get_options().tab_bar_filter
         if f:
             at = self.active_tab
             m = frozenset(get_boss().match_tabs(f, all_tabs=self))
             return (t for t in self if t is at or t in m)
         return self.tabs
+
+    @property
+    def tabs_to_be_shown_in_tab_bar(self) -> Iterable[Tab]:
+        return self.side_nav.filter_tab_bar(self.tabs_matching_tab_bar_filter)
 
     def next_tab(self, delta: int = 1) -> None:
         if (len(tabs := tuple(self.tabs_to_be_shown_in_tab_bar))) == len(self.tabs):
@@ -2417,6 +2430,8 @@ class TabManager:  # {{{
             t.destroy()
         self.tab_bar.destroy()
         del self.tab_bar
+        self.side_nav.destroy()
+        del self.side_nav
         del self.tabs
 
     def apply_options(self) -> None:
@@ -2425,6 +2440,7 @@ class TabManager:  # {{{
             tab.apply_options(at is tab)
         self.tab_bar_hidden = get_options().tab_bar_style == 'hidden'
         self.tab_bar.apply_options()
+        self.side_nav.apply_options()
         self.update_tab_bar_data()
         self.layout_tab_bar()
 

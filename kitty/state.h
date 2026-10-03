@@ -120,6 +120,8 @@ typedef struct Options {
     float inactive_text_alpha;
     Edge tab_bar_edge;
     int tab_title_max_length;
+    int side_nav_width;
+    Edge side_nav_edge;
     DisableLigature disable_ligatures;
     bool force_ltr;
     bool resize_in_steps;
@@ -559,6 +561,10 @@ typedef struct OSWindow {
         color_type left, right;
     } tab_bar_edge_color;
     bool tab_bar_data_updated;
+    WindowRenderData side_nav_render_data;
+    bool side_nav_data_updated, side_nav_hidden;
+    // Columns chosen at runtime (drag or keys), zero follows side_nav_width
+    unsigned side_nav_cols;
     bool is_focused;
     monotonic_t cursor_blink_zero_time, last_mouse_activity_at, mouse_activate_deadline;
     bool user_is_idle;
@@ -675,6 +681,13 @@ typedef struct GlobalState {
         bool drag_started;
         double x, y;
     } window_being_dragged;
+    // The OS window whose side nav border is being dragged, zero when none,
+    // and how far the border was from the pointer when the drag started
+    id_type side_nav_being_resized;
+    double side_nav_drag_offset;
+    // The OS window whose side nav the left button last went down in, zero
+    // when it last went down anywhere else
+    id_type side_nav_left_press;
     struct {
         uint32_t texture_id, framebuffer_id, texture_generation;
         int width, height;
@@ -732,6 +745,9 @@ OSWindow *os_window_for_id(id_type);
 OSWindow *add_os_window(void);
 OSWindow *current_os_window(void);
 void os_window_regions(const OSWindow *, Region *main, Region *tab_bar);
+void os_window_side_nav_region(const OSWindow *, Region *side_nav);
+bool os_window_side_nav_visible(const OSWindow *);
+unsigned os_window_side_nav_cols(const OSWindow *, double x);
 bool drag_scroll(Window *, OSWindow *);
 void draw_borders(ssize_t vao_idx, unsigned int num_border_rects, BorderRect *rect_buf, bool rect_data_is_dirty, color_type, unsigned int, bool, OSWindow *w);
 void draw_rounded_borders(BorderRects *, color_type, unsigned int, bool, OSWindow *);

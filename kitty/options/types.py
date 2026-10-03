@@ -460,6 +460,12 @@ option_names = (
     'shell',
     'shell_integration',
     'show_hyperlink_targets',
+    'side_nav_background',
+    'side_nav_cwd_var',
+    'side_nav_edge',
+    'side_nav_filter_tab_bar',
+    'side_nav_state_var',
+    'side_nav_width',
     'single_window_margin_width',
     'single_window_padding_width',
     'startup_session',
@@ -677,6 +683,12 @@ class Options:
     shell: str = '.'
     shell_integration: frozenset[str] = frozenset({'enabled'})
     show_hyperlink_targets: typing.Literal['never', 'always', 'Ctrl', 'Shift', 'Super', 'Alt'] = 'never'
+    side_nav_background: kitty.fast_data_types.Color | None = None
+    side_nav_cwd_var: str = ''
+    side_nav_edge: int = 1
+    side_nav_filter_tab_bar: bool = True
+    side_nav_state_var: str = ''
+    side_nav_width: int = 0
     single_window_margin_width: FloatEdges = FloatEdges(left=-1.0, top=-1.0, right=-1.0, bottom=-1.0)
     single_window_padding_width: FloatEdges = FloatEdges(left=-1.0, top=-1.0, right=-1.0, bottom=-1.0)
     startup_session: str | None = None
@@ -983,6 +995,20 @@ defaults.map = [
     KeyDefinition(trigger=SingleKey(mods=256, key=44), definition='move_tab_backward'),
     # set_tab_title
     KeyDefinition(trigger=SingleKey(mods=258, key=116), options=KeyMapOptions(when_focus_on='', new_mode='', mode='', on_unknown='beep', on_action='keep', timeout=None, allow_fallback=(KeyFallbackType.shifted, KeyFallbackType.alternate)), definition='set_tab_title'),
+    # toggle_side_nav
+    KeyDefinition(trigger=SingleKey(mods=258, key=115), options=KeyMapOptions(when_focus_on='', new_mode='', mode='', on_unknown='beep', on_action='keep', timeout=None, allow_fallback=(KeyFallbackType.shifted, KeyFallbackType.alternate)), definition='toggle_side_nav'),
+    # side_nav_wider
+    KeyDefinition(trigger=SingleKey(mods=258, key=93), options=KeyMapOptions(when_focus_on='', new_mode='', mode='', on_unknown='beep', on_action='keep', timeout=None, allow_fallback=(KeyFallbackType.shifted, KeyFallbackType.alternate)), definition='resize_side_nav wider 2'),
+    # side_nav_narrower
+    KeyDefinition(trigger=SingleKey(mods=258, key=91), options=KeyMapOptions(when_focus_on='', new_mode='', mode='', on_unknown='beep', on_action='keep', timeout=None, allow_fallback=(KeyFallbackType.shifted, KeyFallbackType.alternate)), definition='resize_side_nav narrower 2'),
+    # side_nav_reset
+    KeyDefinition(trigger=SingleKey(mods=258, key=48), options=KeyMapOptions(when_focus_on='', new_mode='', mode='', on_unknown='beep', on_action='keep', timeout=None, allow_fallback=(KeyFallbackType.shifted, KeyFallbackType.alternate)), definition='resize_side_nav reset'),
+    # side_nav_group_up
+    KeyDefinition(trigger=SingleKey(mods=258, key=57354), definition='move_side_nav_group up'),
+    # side_nav_group_down
+    KeyDefinition(trigger=SingleKey(mods=258, key=57355), definition='move_side_nav_group down'),
+    # side_nav_group_toggle
+    KeyDefinition(trigger=SingleKey(mods=258, key=99), options=KeyMapOptions(when_focus_on='', new_mode='', mode='', on_unknown='beep', on_action='keep', timeout=None, allow_fallback=(KeyFallbackType.shifted, KeyFallbackType.alternate)), definition='toggle_side_nav_group'),
     # next_layout
     KeyDefinition(trigger=SingleKey(mods=256, key=108), options=KeyMapOptions(when_focus_on='', new_mode='', mode='', on_unknown='beep', on_action='keep', timeout=None, allow_fallback=(KeyFallbackType.shifted, KeyFallbackType.alternate)), definition='next_layout'),
     # increase_font_size
@@ -1183,6 +1209,7 @@ nullable_colors = frozenset({
     'window_title_bar_inactive_background',
     'tab_bar_background',
     'tab_bar_margin_color',
+    'side_nav_background',
     'selection_foreground',
     'selection_background',
     'color16',
@@ -1455,6 +1482,7 @@ all_colors = frozenset({
     'inactive_tab_background',
     'tab_bar_background',
     'tab_bar_margin_color',
+    'side_nav_background',
     'foreground',
     'background',
     'selection_foreground',

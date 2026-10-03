@@ -1231,6 +1231,9 @@ class Screen:
     def has_focus(self) -> bool:
         pass
 
+    def io_times(self) -> tuple[float, float]:
+        pass
+
     def has_activity_since_last_focus(self) -> bool:
         pass
 
@@ -1249,6 +1252,21 @@ class Screen:
     def pause_rendering(self, pause: bool = True, for_how_long_in_ms: int = 100) -> bool: ...
 
 def set_tab_bar_render_data(os_window_id: int, screen: Screen, left: int, top: int, right: int, bottom: int) -> None:
+    pass
+
+def set_side_nav_render_data(os_window_id: int, screen: Screen, left: int, top: int, right: int, bottom: int) -> None:
+    pass
+
+def mark_side_nav_dirty(os_window_id: int) -> None:
+    pass
+
+def set_side_nav_hidden(os_window_id: int, hidden: bool) -> bool:
+    pass
+
+def set_side_nav_cols(os_window_id: int, cols: int) -> bool:
+    pass
+
+def side_nav_region(os_window_id: int) -> Region:
     pass
 
 def set_window_title_bar_render_data(os_window_id: int, tab_id: int, window_id: int, screen: Screen, left: int, top: int, right: int, bottom: int) -> None:

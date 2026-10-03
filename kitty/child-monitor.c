@@ -534,6 +534,7 @@ do_parse(ChildMonitor *self, Screen *screen, monotonic_t now, bool flush) {
     ParseData pd = {.dump_callback = self->dump_callback, .now = now};
     self->parse_func(screen, &pd, flush);
     if (pd.input_read) {
+        screen->last_output_at = now;
         if (pd.write_space_created) wakeup_io_loop(self, false);
         if (screen->paused_rendering.expires_at) set_maximum_wait(MAX(0, screen->paused_rendering.expires_at - now));
     } else if (pd.has_pending_input) set_maximum_wait(OPT(input_delay) - pd.time_since_new_input);
@@ -847,6 +848,23 @@ prepare_to_render_os_window(
         if (send_cell_data_to_gpu(TD.vao_idx, TD.screen, os_window)) needs_render = true;
         os_window->needs_layers = os_window->needs_layers || screen_needs_rendering_in_layers(os_window, NULL, TD.screen);
     }
+#define SN os_window->side_nav_render_data
+    if (os_window_side_nav_visible(os_window)) {
+        // The update also lays out the side nav the first time it is visible,
+        // which is what gives it a screen, so it must not depend on one.
+        if (!os_window->side_nav_data_updated) {
+            call_boss(update_side_nav_data, "K", os_window->id);
+            os_window->side_nav_data_updated = true;
+        }
+        if (SN.screen) {
+            CursorRenderInfo *cri = &SN.screen->cursor_render_info;
+            zero_at_ptr(cri);
+            cri->x = SN.screen->cursor->x;
+            cri->y = SN.screen->cursor->y;
+            if (send_cell_data_to_gpu(SN.vao_idx, SN.screen, os_window)) needs_render = true;
+            os_window->needs_layers = os_window->needs_layers || screen_needs_rendering_in_layers(os_window, NULL, SN.screen);
+        }
+    }
     if (OPT(mouse_hide.hide_wait) > 0 && !is_mouse_hidden(os_window)) {
         if (now - os_window->last_mouse_activity_at >= OPT(mouse_hide.hide_wait)) hide_mouse(os_window);
         else set_maximum_wait(OPT(mouse_hide.hide_wait) - now + os_window->last_mouse_activity_at);
@@ -992,7 +1010,8 @@ thumbnail_callback(OSWindow *os_window) {
         if (!tc.include_tab_bar) {
             Region central = {0}, tab_bar = {0};
             os_window_regions(os_window, &central, &tab_bar);
-            if (tab_bar.bottom > tab_bar.top) region = central;
+            // central excludes the side nav as well as the tab bar
+            if (tab_bar.bottom > tab_bar.top || (long)(central.right - central.left) < (long)os_window->viewport_width) region = central;
         }
     }
     unsigned vw = region.right - region.left, vh = region.bottom - region.top;
@@ -1034,6 +1053,7 @@ render_prepared_os_window(
     draw_borders(br->vao_idx, br->num_border_rects, br->rect_buf, br->is_dirty, active_window_bg, num_visible_windows, all_windows_have_same_bg, os_window);
     br->is_dirty = false;
     if (TD.screen && os_window->num_tabs && !os_window->has_too_few_tabs) draw_cells(&TD, os_window, true, true, false, NULL, NULL, now);
+    if (SN.screen && os_window_side_nav_visible(os_window)) draw_cells(&SN, os_window, true, true, false, NULL, NULL, now);
     unsigned int num_of_visible_windows = 0;
     Window *active_window = NULL;
     for (unsigned int i = 0; i < tab->num_windows; i++) {
@@ -1067,6 +1087,7 @@ render_prepared_os_window(
     if (USE_RENDER_FRAMES) request_frame_render(os_window);
 #undef WD
 #undef TD
+#undef SN
 }
 
 static bool

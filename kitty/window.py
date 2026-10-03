@@ -79,6 +79,7 @@ from .fast_data_types import (
     is_modifier_key,
     last_focused_os_window_id,
     mark_os_window_dirty,
+    mark_side_nav_dirty,
     monotonic,
     mouse_selection,
     move_cursor_to_mouse_if_in_prompt,
@@ -793,6 +794,10 @@ class Window:
         self.child_title = self.default_title
         self.title_stack: Deque[str] = deque(maxlen=10)
         self.user_vars: dict[str, str] = {}
+        # The foreground process group when side_nav_cwd_var was set: the
+        # directory it holds is that program's, and no longer applies once
+        # another program is in the foreground
+        self.side_nav_cwd_pgrp = -1
         self.id: int = add_window(tab.os_window_id, tab.id, self.title)
         if not self.id:
             raise Exception(f'No tab with id: {tab.id} in OS Window: {tab.os_window_id} was found, or the window counter wrapped')
@@ -1354,6 +1359,11 @@ class Window:
     def set_user_var(self, key: str, val: str | bytes | None) -> None:
         key = sanitize_control_codes(key).replace('\n', ' ')
         self.user_vars.pop(key, None)  # ensure key will be newest in user_vars even if already present
+        opts = get_options()
+        if key and key in (opts.side_nav_state_var, opts.side_nav_cwd_var):
+            mark_side_nav_dirty(self.os_window_id)
+            if key == opts.side_nav_cwd_var:
+                self.side_nav_cwd_pgrp = self.child.foreground_pgrp
         if len(self.user_vars) > 64:  # dont store too many user vars
             oldest_key = next(iter(self.user_vars))
             self.user_vars.pop(oldest_key)

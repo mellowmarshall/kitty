@@ -4,6 +4,7 @@
 #include "to-c.h"
 
 
+
 static void
 convert_from_python_font_size(PyObject *val, Options *opts) {
     opts->font_size = PyFloat_AsDouble(val);
@@ -1188,6 +1189,32 @@ convert_from_opts_tab_bar_margin_color(PyObject *py_opts, Options *opts) {
 }
 
 static void
+convert_from_python_side_nav_width(PyObject *val, Options *opts) {
+    opts->side_nav_width = PyLong_AsLong(val);
+}
+
+static void
+convert_from_opts_side_nav_width(PyObject *py_opts, Options *opts) {
+    PyObject *ret = PyObject_GetAttrString(py_opts, "side_nav_width");
+    if (ret == NULL) return;
+    convert_from_python_side_nav_width(ret, opts);
+    Py_DECREF(ret);
+}
+
+static void
+convert_from_python_side_nav_edge(PyObject *val, Options *opts) {
+    opts->side_nav_edge = PyLong_AsLong(val);
+}
+
+static void
+convert_from_opts_side_nav_edge(PyObject *py_opts, Options *opts) {
+    PyObject *ret = PyObject_GetAttrString(py_opts, "side_nav_edge");
+    if (ret == NULL) return;
+    convert_from_python_side_nav_edge(ret, opts);
+    Py_DECREF(ret);
+}
+
+static void
 convert_from_python_foreground(PyObject *val, Options *opts) {
     opts->foreground = color_as_int(val);
 }
@@ -1760,6 +1787,10 @@ convert_opts_from_python_opts(PyObject *py_opts, Options *opts) {
     convert_from_opts_tab_bar_background(py_opts, opts);
     if (PyErr_Occurred()) return false;
     convert_from_opts_tab_bar_margin_color(py_opts, opts);
+    if (PyErr_Occurred()) return false;
+    convert_from_opts_side_nav_width(py_opts, opts);
+    if (PyErr_Occurred()) return false;
+    convert_from_opts_side_nav_edge(py_opts, opts);
     if (PyErr_Occurred()) return false;
     convert_from_opts_foreground(py_opts, opts);
     if (PyErr_Occurred()) return false;

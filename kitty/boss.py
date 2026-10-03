@@ -125,6 +125,7 @@ from .fast_data_types import (
     set_os_window_title,
     set_tab_being_dragged,
     set_window_being_dragged,
+    side_nav_region,
     start_drag_with_data,
     thread_write,
     toggle_fullscreen,
@@ -401,6 +402,11 @@ class VisualSelect:
                 tm.set_active_tab(t)
         if current_focused_os_window_id() != self.prev_os_window_id and self.prev_os_window_id is not None:
             focus_os_window(self.prev_os_window_id, True)
+
+
+def point_in_side_nav(os_window_id: int, x: float, y: float) -> bool:
+    r = side_nav_region(os_window_id)
+    return r.left <= x < r.right and r.top <= y < r.bottom
 
 
 class Boss:
@@ -1273,6 +1279,91 @@ class Boss:
             tm = self.active_tab_manager
         return tm
 
+    @ac(
+        'tab',
+        """
+        Toggle the side nav, the sidebar that groups tabs by git repository
+
+        Has no effect unless :opt:`side_nav_width` is set.
+        """,
+    )
+    def toggle_side_nav(self) -> None:
+        if tm := self.active_tab_manager_with_dispatch:
+            tm.side_nav.toggle()
+
+    @ac(
+        'tab',
+        """
+        Resize the side nav, by a number of columns
+
+        For example::
+
+            map kitty_mod+alt+] resize_side_nav wider 2
+            map kitty_mod+alt+[ resize_side_nav narrower 2
+            map kitty_mod+alt+0 resize_side_nav reset
+
+        :code:`reset` goes back to :opt:`side_nav_width`. The width is also changed
+        by dragging the inner edge of the side nav. It applies to every OS window
+        and is kept for new OS windows and after kitty restarts, until
+        :opt:`side_nav_width` is changed.
+        """,
+    )
+    def resize_side_nav(self, quality: str = 'wider', increment: int = 2) -> None:
+        if (tm := self.active_tab_manager_with_dispatch) and (cols := tm.side_nav.resized_width(quality, increment)) is not None:
+            self.set_side_nav_width(cols)
+
+    @ac(
+        'tab',
+        """
+        Move the side nav group of the active tab up or down the list
+
+        Its tabs move together, so the tab order changes to match: tabs of the
+        group that were apart from each other end up next to each other. For
+        example::
+
+            map kitty_mod+alt+page_up move_side_nav_group up
+            map kitty_mod+alt+page_down move_side_nav_group down
+
+        Dragging a group header in the side nav does the same.
+        """,
+    )
+    def move_side_nav_group(self, direction: str = 'up') -> None:
+        if tm := self.active_tab_manager_with_dispatch:
+            tm.side_nav.move_active_group(1 if direction == 'down' else -1)
+
+    @ac(
+        'tab',
+        """
+        Collapse or expand the side nav group of the active tab
+
+        A collapsed group shows only its header, with its number of tabs and the
+        most urgent state among them. Clicking the arrow of a group header does the
+        same. Collapsed groups apply to every OS window and are kept after kitty
+        restarts.
+        """,
+    )
+    def toggle_side_nav_group(self) -> None:
+        if (tm := self.active_tab_manager_with_dispatch) and tm.side_nav.is_visible and (at := tm.active_tab) is not None:
+            key = tm.side_nav.group_key(at)
+            self.set_side_nav_group_collapsed(key, key not in tm.side_nav.collapsed)
+
+    def set_side_nav_group_collapsed(self, key: str, collapsed: bool) -> None:
+        from .side_nav_arrange import save_collapsed
+
+        current = next(iter(self.os_window_map.values())).side_nav.collapsed if self.os_window_map else frozenset()
+        keys = current | {key} if collapsed else current - {key}
+        for tm in self.os_window_map.values():
+            tm.side_nav.set_collapsed(keys)
+        save_collapsed(keys)
+
+    def set_side_nav_width(self, cols: int) -> None:
+        "One width for the side nav of every OS window, zero for side_nav_width"
+        from .side_nav_width import save_width
+
+        for tm in self.os_window_map.values():
+            tm.side_nav.apply_width(cols)
+        save_width(cols, get_options().side_nav_width)
+
     @ac('tab', 'Close all the tabs in the current OS window other than the currently active tab')
     def close_other_tabs_in_os_window(self) -> None:
         tm = self.active_tab_manager_with_dispatch
@@ -1551,6 +1642,24 @@ class Boss:
     def handle_tab_bar_mouse(self, os_window_id: int, x: float, y: float, button: int, modifiers: int, action: int) -> None:
         if tm := self.os_window_map.get(os_window_id):
             tm.handle_tab_bar_mouse(x, y, button, modifiers, action)
+
+    def handle_side_nav_mouse(self, os_window_id: int, x: float, y: float, button: int, modifiers: int, action: int) -> None:
+        if tm := self.os_window_map.get(os_window_id):
+            tm.side_nav.handle_mouse(x, y, button, modifiers, action)
+
+    def handle_side_nav_resize(self, os_window_id: int, cols: int, ended: bool) -> None:
+        # Called while the side nav border is dragged; once it ends, a changed
+        # width applies to every OS window and is saved
+        if (tm := self.os_window_map.get(os_window_id)) and (final := tm.side_nav.drag(cols, ended)) is not None:
+            self.set_side_nav_width(final)
+
+    def handle_side_nav_scroll(self, os_window_id: int, offset: float, offset_type: int) -> None:
+        if tm := self.os_window_map.get(os_window_id):
+            tm.side_nav.handle_scroll(offset, offset_type)
+
+    def update_side_nav_data(self, os_window_id: int) -> None:
+        if tm := self.os_window_map.get(os_window_id):
+            tm.side_nav.update()
 
     def start_tab_drag(self, os_window_id: int, window_id: int, pixels: bytes, width: int, height: int) -> None:
         # A previous drag whose drop never reached _reset_drop_previews (failed transfer, dragged
@@ -2191,7 +2300,8 @@ class Boss:
                 self._update_drag_over(None if is_leave else tm)
                 tab_bar = viewport_for_window(os_window_id)[1]
                 in_tab_bar = tab_bar.left <= x < tab_bar.right and tab_bar.top <= y < tab_bar.bottom
-                detach = not in_tab_bar or tab.os_window_id != tm.os_window_id or is_leave
+                same_window_side_nav = tab.os_window_id == tm.os_window_id and point_in_side_nav(os_window_id, x, y)
+                detach = not (in_tab_bar or same_window_side_nav) or tab.os_window_id != tm.os_window_id or is_leave
                 change_drag_thumbnail(tab.os_window_id, 1 if detach else 0)
                 merge_window = None if is_leave else self._tab_merge_target(tab, tm, x, y)
                 merge_window_id = merge_window.id if merge_window is not None else 0
@@ -2234,6 +2344,10 @@ class Boss:
                 if in_tab_bar and tab.os_window_id == tm.os_window_id:
                     restore_tab_drag_focus_for = tm
                 tm.on_tab_drop(x, y)
+            elif point_in_side_nav(os_window_id, x, y):
+                # The side nav is not a drop target, dropping a tab there must
+                # not detach it into a new OS window.
+                restore_tab_drag_focus_for = tm
             else:
                 self._move_tab_to(tab)
             set_tab_being_dragged()

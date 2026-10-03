@@ -325,6 +325,32 @@ def resize_window(func: str, rest: str) -> FuncArgsType:
     return func, args
 
 
+@func_with_args('resize_side_nav')
+def resize_side_nav(func: str, rest: str) -> FuncArgsType:
+    from ..side_nav_width import QUALITIES
+    vals = rest.strip().split()
+    quality = vals[0].lower() if vals else 'wider'
+    if quality not in QUALITIES:
+        log_error(f'Invalid side nav resize: {quality}')
+        quality = 'wider'
+    increment = 2
+    if len(vals) > 1:
+        try:
+            increment = int(vals[1])
+        except Exception:
+            log_error(f'Invalid side nav resize increment: {vals[1]}')
+    return func, [quality, increment]
+
+
+@func_with_args('move_side_nav_group')
+def move_side_nav_group(func: str, rest: str) -> FuncArgsType:
+    direction = rest.strip().lower() or 'up'
+    if direction not in ('up', 'down'):
+        log_error(f'Invalid side nav group direction: {direction}')
+        direction = 'up'
+    return func, [direction]
+
+
 @func_with_args('move_window')
 def move_window(func: str, rest: str) -> FuncArgsType:
     rest = rest.lower()
@@ -856,6 +882,10 @@ def tab_bar_edge(x: str) -> int:
             return defines.RIGHT_EDGE
         case _:
             return defines.BOTTOM_EDGE
+
+
+def side_nav_edge(x: str) -> int:
+    return defines.RIGHT_EDGE if x.lower() == 'right' else defines.LEFT_EDGE
 
 
 def tab_font_style(x: str) -> tuple[bool, bool]:

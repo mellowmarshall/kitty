@@ -311,6 +311,7 @@ add_os_window(void) {
     zero_at_ptr(ans);
     ans->id = ++global_state.os_window_id_counter;
     ans->tab_bar_render_data.vao_idx = create_cell_vao();
+    ans->side_nav_render_data.vao_idx = create_cell_vao();
     ans->background_opacity.alpha = OPT(background_opacity);
     ans->created_at = monotonic();
     init_shader_animation_state(ans);
@@ -581,6 +582,8 @@ destroy_os_window_item(OSWindow *w) {
     Py_CLEAR(w->window_title);
     Py_CLEAR(w->tab_bar_render_data.screen);
     free_vao(w->tab_bar_render_data.vao_idx);
+    Py_CLEAR(w->side_nav_render_data.screen);
+    free_vao(w->side_nav_render_data.vao_idx);
     free(w->tabs);
     w->tabs = NULL;
     free_bgimage(&w->background_image.override, true);
@@ -601,6 +604,7 @@ remove_os_window(id_type os_window_id) {
     make_os_window_context_current(os_window);
     END_WITH_OS_WINDOW
     if (found) {
+        if (global_state.side_nav_being_resized == os_window_id) global_state.side_nav_being_resized = 0;
         WITH_OS_WINDOW_REFS
         REMOVER(global_state.os_windows, os_window_id, global_state.num_os_windows, destroy_os_window_item, global_state.capacity);
         END_WITH_OS_WINDOW_REFS
@@ -756,12 +760,52 @@ pyset_borders_rects(PyObject *self UNUSED, PyObject *args) {
 }
 
 
-static unsigned
-vertical_tab_bar_cols(const OSWindow *os_window, long margin_outer, long margin_inner) {
+bool
+os_window_side_nav_visible(const OSWindow *os_window) {
+    return OPT(side_nav_width) > 0 && !os_window->side_nav_hidden && os_window->num_tabs && os_window->fonts_data;
+}
+
+void
+os_window_side_nav_region(const OSWindow *os_window, Region *side_nav) {
+    zero_at_ptr(side_nav);
+    if (!os_window_side_nav_visible(os_window)) return;
     unsigned cell_width = MAX(1u, os_window->fonts_data->fcm.cell_width);
-    long available_width = (long)os_window->viewport_width - margin_outer - margin_inner;
+    // Never take more than half the OS window so the terminal stays usable.
+    unsigned requested = os_window->side_nav_cols ? os_window->side_nav_cols : (unsigned)OPT(side_nav_width);
+    unsigned cols = MIN(requested, os_window->viewport_width / 2u / cell_width);
+    if (!cols) return;
+    unsigned width = cols * cell_width;
+    side_nav->top = 0;
+    side_nav->bottom = os_window->viewport_height;
+    if (OPT(side_nav_edge) == RIGHT_EDGE) {
+        side_nav->right = os_window->viewport_width;
+        side_nav->left = side_nav->right - width;
+    } else {
+        side_nav->left = 0;
+        side_nav->right = width;
+    }
+}
+
+unsigned
+os_window_side_nav_cols(const OSWindow *os_window, double x) {
+    // The width, in whole columns, that puts the side nav's inner edge nearest x,
+    // at most the half of the OS window that the side nav may take
+    if (!os_window->fonts_data) return 0;
+    unsigned cell_width = MAX(1u, os_window->fonts_data->fcm.cell_width);
+    double width = OPT(side_nav_edge) == RIGHT_EDGE ? os_window->viewport_width - x : x;
+    unsigned cols = width <= 0 ? 0 : (unsigned)(width / cell_width + 0.5);
+    return MIN(cols, os_window->viewport_width / 2u / cell_width);
+}
+
+static unsigned
+vertical_tab_bar_cols(const OSWindow *os_window, long base_width, long margin_outer, long margin_inner) {
+    unsigned cell_width = MAX(1u, os_window->fonts_data->fcm.cell_width);
+    long available_width = base_width - margin_outer - margin_inner;
     if (available_width <= 0) return 0;
     unsigned available_cols = MAX(1u, (unsigned)available_width / cell_width);
+    // When the side nav also takes width, keep half of what is left (up to 20
+    // columns) for the terminal, so the two sidebars cannot squeeze it to nothing.
+    if (base_width < (long)os_window->viewport_width) available_cols = MAX(1u, available_cols - MIN(20u, available_cols / 2u));
     unsigned title_cols = OPT(tab_title_max_length) > 0 ? (unsigned)OPT(tab_title_max_length) : 20u;
     unsigned desired_cols = title_cols + 8u;
     unsigned soft_max = available_cols / 3u;
@@ -771,11 +815,19 @@ vertical_tab_bar_cols(const OSWindow *os_window, long margin_outer, long margin_
 
 void
 os_window_regions(const OSWindow *os_window, Region *central, Region *tab_bar) {
+    // The side nav is carved out first, the tab bar and central area share what is left.
+    Region side_nav;
+    os_window_side_nav_region(os_window, &side_nav);
+    long base_left = 0, base_right = os_window->viewport_width;
+    if (side_nav.right > side_nav.left) {
+        if (OPT(side_nav_edge) == RIGHT_EDGE) base_right = side_nav.left;
+        else base_left = side_nav.right;
+    }
     if (!OPT(tab_bar_hidden) && os_window->num_tabs && !os_window->has_too_few_tabs) {
         long margin_outer = pt_to_px_for_os_window(OPT(tab_bar_margin_height.outer), os_window);
         long margin_inner = pt_to_px_for_os_window(OPT(tab_bar_margin_height.inner), os_window);
-        central->left = 0;
-        central->right = os_window->viewport_width;
+        central->left = base_left;
+        central->right = base_right;
         central->top = 0;
         central->bottom = os_window->viewport_height;
         switch (OPT(tab_bar_edge)) {
@@ -791,27 +843,27 @@ os_window_regions(const OSWindow *os_window, Region *central, Region *tab_bar) {
                 break;
             }
             case LEFT_EDGE: {
-                unsigned left_cols = vertical_tab_bar_cols(os_window, margin_outer, margin_inner);
+                unsigned left_cols = vertical_tab_bar_cols(os_window, base_right - base_left, margin_outer, margin_inner);
                 if (!left_cols) {
                     zero_at_ptr(tab_bar);
                     return;
                 }
                 unsigned left_width = left_cols * os_window->fonts_data->fcm.cell_width;
-                central->left = MIN((long)(left_width + margin_inner + margin_outer), (long)central->right);
-                tab_bar->left = margin_outer;
+                central->left = MIN((long)(base_left + left_width + margin_inner + margin_outer), (long)central->right);
+                tab_bar->left = base_left + margin_outer;
                 tab_bar->right = tab_bar->left + left_width;
                 tab_bar->top = central->top;
                 tab_bar->bottom = central->bottom;
                 break;
             }
             case RIGHT_EDGE: {
-                unsigned right_cols = vertical_tab_bar_cols(os_window, margin_outer, margin_inner);
+                unsigned right_cols = vertical_tab_bar_cols(os_window, base_right - base_left, margin_outer, margin_inner);
                 if (!right_cols) {
                     zero_at_ptr(tab_bar);
                     return;
                 }
                 unsigned right_width = right_cols * os_window->fonts_data->fcm.cell_width;
-                central->right = MAX(0, (long)os_window->viewport_width - (long)(right_width + margin_inner + margin_outer));
+                central->right = MAX(base_left, base_right - (long)(right_width + margin_inner + margin_outer));
                 tab_bar->left = central->right + margin_inner;
                 tab_bar->right = tab_bar->left + right_width;
                 tab_bar->top = central->top;
@@ -832,9 +884,9 @@ os_window_regions(const OSWindow *os_window, Region *central, Region *tab_bar) {
         }
     } else {
         zero_at_ptr(tab_bar);
-        central->left = 0;
+        central->left = base_left;
         central->top = 0;
-        central->right = os_window->viewport_width;
+        central->right = base_right;
         central->bottom = os_window->viewport_height;
     }
 }
@@ -1128,6 +1180,17 @@ PYWRAP1(set_tab_bar_render_data) {
     Py_RETURN_NONE;
 }
 
+PYWRAP1(set_side_nav_render_data) {
+    WindowGeometry g;
+    id_type os_window_id;
+    Screen *screen;
+    PA("KOIIII", &os_window_id, &screen, &g.left, &g.top, &g.right, &g.bottom);
+    WITH_OS_WINDOW(os_window_id)
+    init_window_render_data(&os_window->side_nav_render_data, g, screen);
+    END_WITH_OS_WINDOW
+    Py_RETURN_NONE;
+}
+
 PYWRAP1(set_window_drag_overlay) {
     id_type os_window_id, tab_id, window_id;
     int quadrant;
@@ -1294,6 +1357,55 @@ PYWRAP1(mark_tab_bar_dirty) {
     os_window->tab_bar_data_updated = false;
     END_WITH_OS_WINDOW
     Py_RETURN_NONE;
+}
+
+PYWRAP1(mark_side_nav_dirty) {
+    id_type os_window_id;
+    PA("K", &os_window_id);
+    WITH_OS_WINDOW(os_window_id)
+    os_window->side_nav_data_updated = false;
+    END_WITH_OS_WINDOW
+    Py_RETURN_NONE;
+}
+
+PYWRAP1(set_side_nav_hidden) {
+    // Returns True when visibility changed, so the caller knows to relayout.
+    id_type os_window_id;
+    int hidden;
+    PA("Kp", &os_window_id, &hidden);
+    WITH_OS_WINDOW(os_window_id)
+    if (os_window->side_nav_hidden == (bool)hidden) Py_RETURN_FALSE;
+    os_window->side_nav_hidden = hidden;
+    os_window->side_nav_data_updated = false;
+    os_window->needs_render = true;
+    Py_RETURN_TRUE;
+    END_WITH_OS_WINDOW
+    Py_RETURN_FALSE;
+}
+
+PYWRAP1(set_side_nav_cols) {
+    // Returns True when the width changed, so the caller knows to relayout.
+    id_type os_window_id;
+    unsigned int cols;
+    PA("KI", &os_window_id, &cols);
+    WITH_OS_WINDOW(os_window_id)
+    if (os_window->side_nav_cols == cols) Py_RETURN_FALSE;
+    os_window->side_nav_cols = cols;
+    os_window->side_nav_data_updated = false;
+    os_window->needs_render = true;
+    Py_RETURN_TRUE;
+    END_WITH_OS_WINDOW
+    Py_RETURN_FALSE;
+}
+
+PYWRAP1(side_nav_region) {
+    id_type os_window_id;
+    PA("K", &os_window_id);
+    Region r = {0};
+    WITH_OS_WINDOW(os_window_id)
+    os_window_side_nav_region(os_window, &r);
+    END_WITH_OS_WINDOW
+    return wrap_region(&r);
 }
 
 PYWRAP1(is_tab_bar_visible) {
@@ -1469,6 +1581,7 @@ PYWRAP1(os_window_font_size) {
         on_os_window_font_size_change(os_window, new_sz);
         send_prerendered_sprites_for_window(os_window);
         resize_screen(os_window, os_window->tab_bar_render_data.screen, false);
+        if (os_window->side_nav_render_data.screen) resize_screen(os_window, os_window->side_nav_render_data.screen, false);
         for (size_t ti = 0; ti < os_window->num_tabs; ti++) {
             Tab *tab = os_window->tabs + ti;
             for (size_t wi = 0; wi < tab->num_windows; wi++) {
@@ -2074,6 +2187,11 @@ static PyMethodDef module_methods[] = {
     MW(reorder_tabs, METH_VARARGS),
     MW(set_borders_rects, METH_VARARGS),
     MW(set_tab_bar_render_data, METH_VARARGS),
+    MW(set_side_nav_render_data, METH_VARARGS),
+    MW(mark_side_nav_dirty, METH_VARARGS),
+    MW(set_side_nav_hidden, METH_VARARGS),
+    MW(set_side_nav_cols, METH_VARARGS),
+    MW(side_nav_region, METH_VARARGS),
     MW(set_window_title_bar_render_data, METH_VARARGS),
     MW(set_window_render_data, METH_VARARGS),
     MW(set_window_drag_overlay, METH_VARARGS),

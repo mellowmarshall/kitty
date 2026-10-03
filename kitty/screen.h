@@ -160,6 +160,10 @@ typedef struct {
     bool has_focus;
     uint8_t visibility_state; // 0 = unknown, 1 = potentially visible, 2 = not visible
     bool has_activity_since_last_focus;
+    // When the child last wrote output, and when it last got something that
+    // makes programs redraw: typing, pasting, mouse clicks and scrolls, focus
+    // reports. The side nav uses them to tell a working program from a redraw.
+    monotonic_t last_output_at, last_stimulus_at;
     hyperlink_id_type active_hyperlink_id;
     HYPERLINK_POOL_HANDLE hyperlink_pool;
     ANSIBuf as_ansi_buf;
