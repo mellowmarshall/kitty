@@ -1,0 +1,572 @@
+{
+ "files": {
+  ".github/workflows/macos_crash_report.py": {
+   "lines": 541,
+   "reason": "upstream kitty file"
+  },
+  "3rdparty/base64/lib/tables/table_enc_12bit.h": {
+   "lines": 1031,
+   "reason": "upstream kitty file"
+  },
+  "3rdparty/verstable.h": {
+   "lines": 1946,
+   "reason": "upstream kitty file"
+  },
+  "bypy/macos/__main__.py": {
+   "lines": 545,
+   "reason": "upstream kitty file"
+  },
+  "docs/conf.py": {
+   "lines": 848,
+   "reason": "upstream kitty file"
+  },
+  "gen/color_names.py": {
+   "lines": 802,
+   "reason": "upstream kitty file"
+  },
+  "gen/go_code.py": {
+   "lines": 1034,
+   "reason": "upstream kitty file"
+  },
+  "gen/key_constants.py": {
+   "lines": 504,
+   "reason": "upstream kitty file"
+  },
+  "gen/wcwidth.py": {
+   "lines": 1259,
+   "reason": "upstream kitty file"
+  },
+  "glfw/egl_context.c": {
+   "lines": 642,
+   "reason": "upstream kitty file"
+  },
+  "glfw/glfw3.h": {
+   "lines": 6062,
+   "reason": "upstream kitty file"
+  },
+  "glfw/glx_context.c": {
+   "lines": 546,
+   "reason": "upstream kitty file"
+  },
+  "glfw/ibus_glfw.c": {
+   "lines": 565,
+   "reason": "upstream kitty file"
+  },
+  "glfw/input.c": {
+   "lines": 1596,
+   "reason": "upstream kitty file"
+  },
+  "glfw/internal.h": {
+   "lines": 908,
+   "reason": "upstream kitty file"
+  },
+  "glfw/mappings.h": {
+   "lines": 1236,
+   "reason": "upstream kitty file"
+  },
+  "glfw/null_window.c": {
+   "lines": 584,
+   "reason": "upstream kitty file"
+  },
+  "glfw/window.c": {
+   "lines": 1019,
+   "reason": "upstream kitty file"
+  },
+  "glfw/wl_client_side_decorations.c": {
+   "lines": 1029,
+   "reason": "upstream kitty file"
+  },
+  "glfw/wl_init.c": {
+   "lines": 1202,
+   "reason": "upstream kitty file"
+  },
+  "glfw/wl_platform.h": {
+   "lines": 556,
+   "reason": "upstream kitty file"
+  },
+  "glfw/wl_window.c": {
+   "lines": 3703,
+   "reason": "upstream kitty file"
+  },
+  "glfw/x11_init.c": {
+   "lines": 830,
+   "reason": "upstream kitty file"
+  },
+  "glfw/x11_platform.h": {
+   "lines": 570,
+   "reason": "upstream kitty file"
+  },
+  "glfw/x11_window.c": {
+   "lines": 4100,
+   "reason": "upstream kitty file"
+  },
+  "glfw/xkb-compat-shim.h": {
+   "lines": 830,
+   "reason": "upstream kitty file"
+  },
+  "glfw/xkb_glfw.c": {
+   "lines": 1138,
+   "reason": "upstream kitty file"
+  },
+  "kittens/choose_files/main.go": {
+   "lines": 1050,
+   "reason": "upstream kitty file"
+  },
+  "kittens/choose_files/scan.go": {
+   "lines": 753,
+   "reason": "upstream kitty file"
+  },
+  "kittens/command_palette/main.go": {
+   "lines": 1053,
+   "reason": "upstream kitty file"
+  },
+  "kittens/desktop_ui/portal.go": {
+   "lines": 982,
+   "reason": "upstream kitty file"
+  },
+  "kittens/diff/patch.go": {
+   "lines": 655,
+   "reason": "upstream kitty file"
+  },
+  "kittens/diff/render.go": {
+   "lines": 886,
+   "reason": "upstream kitty file"
+  },
+  "kittens/diff/ui.go": {
+   "lines": 804,
+   "reason": "upstream kitty file"
+  },
+  "kittens/dnd/drag.go": {
+   "lines": 528,
+   "reason": "upstream kitty file"
+  },
+  "kittens/dnd/drop.go": {
+   "lines": 948,
+   "reason": "upstream kitty file"
+  },
+  "kittens/hints/marks.go": {
+   "lines": 787,
+   "reason": "upstream kitty file"
+  },
+  "kittens/ssh/main.go": {
+   "lines": 941,
+   "reason": "upstream kitty file"
+  },
+  "kittens/themes/ui.go": {
+   "lines": 660,
+   "reason": "upstream kitty file"
+  },
+  "kittens/transfer/algorithm.c": {
+   "lines": 1138,
+   "reason": "upstream kitty file"
+  },
+  "kittens/transfer/receive.go": {
+   "lines": 1197,
+   "reason": "upstream kitty file"
+  },
+  "kittens/transfer/send.go": {
+   "lines": 1288,
+   "reason": "upstream kitty file"
+  },
+  "kittens/tui/images.py": {
+   "lines": 611,
+   "reason": "upstream kitty file"
+  },
+  "kittens/tui/spinners.py": {
+   "lines": 687,
+   "reason": "upstream kitty file"
+  },
+  "kittens/unicode_input/main.go": {
+   "lines": 665,
+   "reason": "upstream kitty file"
+  },
+  "kitty/boss.py": {
+   "lines": 4137,
+   "reason": "upstream kitty file"
+  },
+  "kitty/char-props-data.h": {
+   "lines": 3046,
+   "reason": "upstream kitty file"
+  },
+  "kitty/child-monitor.c": {
+   "lines": 2403,
+   "reason": "upstream kitty file"
+  },
+  "kitty/child.py": {
+   "lines": 709,
+   "reason": "upstream kitty file"
+  },
+  "kitty/cli.py": {
+   "lines": 747,
+   "reason": "upstream kitty file"
+  },
+  "kitty/clipboard.py": {
+   "lines": 735,
+   "reason": "upstream kitty file"
+  },
+  "kitty/color-names.h": {
+   "lines": 3845,
+   "reason": "upstream kitty file"
+  },
+  "kitty/colors.c": {
+   "lines": 1618,
+   "reason": "upstream kitty file"
+  },
+  "kitty/conf/generate.py": {
+   "lines": 748,
+   "reason": "upstream kitty file"
+  },
+  "kitty/conf/types.py": {
+   "lines": 781,
+   "reason": "upstream kitty file"
+  },
+  "kitty/conf/utils.py": {
+   "lines": 574,
+   "reason": "upstream kitty file"
+  },
+  "kitty/crypto.c": {
+   "lines": 610,
+   "reason": "upstream kitty file"
+  },
+  "kitty/data-types.c": {
+   "lines": 1053,
+   "reason": "upstream kitty file"
+  },
+  "kitty/decorations.c": {
+   "lines": 2903,
+   "reason": "upstream kitty file"
+  },
+  "kitty/disk-cache.c": {
+   "lines": 1171,
+   "reason": "upstream kitty file"
+  },
+  "kitty/dnd.c": {
+   "lines": 3146,
+   "reason": "upstream kitty file"
+  },
+  "kitty/file_transmission.py": {
+   "lines": 1285,
+   "reason": "upstream kitty file"
+  },
+  "kitty/fontconfig.c": {
+   "lines": 967,
+   "reason": "upstream kitty file"
+  },
+  "kitty/fonts.c": {
+   "lines": 2895,
+   "reason": "upstream kitty file"
+  },
+  "kitty/fonts/common.py": {
+   "lines": 579,
+   "reason": "upstream kitty file"
+  },
+  "kitty/freetype.c": {
+   "lines": 1707,
+   "reason": "upstream kitty file"
+  },
+  "kitty/freetype_render_ui_text.c": {
+   "lines": 791,
+   "reason": "upstream kitty file"
+  },
+  "kitty/gl-wrapper.h": {
+   "lines": 11508,
+   "reason": "upstream kitty file"
+  },
+  "kitty/gl.c": {
+   "lines": 730,
+   "reason": "upstream kitty file"
+  },
+  "kitty/glfw-wrapper.c": {
+   "lines": 599,
+   "reason": "upstream kitty file"
+  },
+  "kitty/glfw-wrapper.h": {
+   "lines": 2701,
+   "reason": "upstream kitty file"
+  },
+  "kitty/glfw.c": {
+   "lines": 4336,
+   "reason": "upstream kitty file"
+  },
+  "kitty/graphics.c": {
+   "lines": 3003,
+   "reason": "upstream kitty file"
+  },
+  "kitty/history.c": {
+   "lines": 768,
+   "reason": "upstream kitty file"
+  },
+  "kitty/keys.c": {
+   "lines": 689,
+   "reason": "upstream kitty file"
+  },
+  "kitty/launch.py": {
+   "lines": 1451,
+   "reason": "upstream kitty file"
+  },
+  "kitty/launcher/cli-parser.h": {
+   "lines": 662,
+   "reason": "upstream kitty file"
+  },
+  "kitty/launcher/main.c": {
+   "lines": 651,
+   "reason": "upstream kitty file"
+  },
+  "kitty/layout/base.py": {
+   "lines": 822,
+   "reason": "upstream kitty file"
+  },
+  "kitty/layout/splits.py": {
+   "lines": 1146,
+   "reason": "upstream kitty file"
+  },
+  "kitty/line-buf.c": {
+   "lines": 641,
+   "reason": "upstream kitty file"
+  },
+  "kitty/line.c": {
+   "lines": 1252,
+   "reason": "upstream kitty file"
+  },
+  "kitty/main.py": {
+   "lines": 669,
+   "reason": "upstream kitty file"
+  },
+  "kitty/mouse.c": {
+   "lines": 1851,
+   "reason": "upstream kitty file"
+  },
+  "kitty/notifications.py": {
+   "lines": 1112,
+   "reason": "upstream kitty file"
+  },
+  "kitty/options/definition.py": {
+   "lines": 4805,
+   "reason": "upstream kitty file"
+  },
+  "kitty/options/parse.py": {
+   "lines": 1688,
+   "reason": "upstream kitty file"
+  },
+  "kitty/options/to-c-generated.h": {
+   "lines": 1825,
+   "reason": "upstream kitty file"
+  },
+  "kitty/options/to-c.h": {
+   "lines": 758,
+   "reason": "upstream kitty file"
+  },
+  "kitty/options/types.py": {
+   "lines": 1728,
+   "reason": "upstream kitty file"
+  },
+  "kitty/options/utils.py": {
+   "lines": 1944,
+   "reason": "upstream kitty file"
+  },
+  "kitty/remote_control.py": {
+   "lines": 531,
+   "reason": "upstream kitty file"
+  },
+  "kitty/screen.c": {
+   "lines": 7272,
+   "reason": "upstream kitty file"
+  },
+  "kitty/session.py": {
+   "lines": 743,
+   "reason": "upstream kitty file"
+  },
+  "kitty/shaders.c": {
+   "lines": 3531,
+   "reason": "upstream kitty file"
+  },
+  "kitty/shaders/slang.py": {
+   "lines": 1659,
+   "reason": "upstream kitty file"
+  },
+  "kitty/simd-string-impl.h": {
+   "lines": 1236,
+   "reason": "upstream kitty file"
+  },
+  "kitty/simple_cli_definitions.py": {
+   "lines": 817,
+   "reason": "upstream kitty file"
+  },
+  "kitty/state.c": {
+   "lines": 2173,
+   "reason": "upstream kitty file"
+  },
+  "kitty/state.h": {
+   "lines": 810,
+   "reason": "upstream kitty file"
+  },
+  "kitty/tab_bar.py": {
+   "lines": 1271,
+   "reason": "upstream kitty file"
+  },
+  "kitty/tabs.py": {
+   "lines": 2432,
+   "reason": "upstream kitty file"
+  },
+  "kitty/terminfo.py": {
+   "lines": 576,
+   "reason": "upstream kitty file"
+  },
+  "kitty/utils.py": {
+   "lines": 1299,
+   "reason": "upstream kitty file"
+  },
+  "kitty/vt-parser.c": {
+   "lines": 1783,
+   "reason": "upstream kitty file"
+  },
+  "kitty/window.py": {
+   "lines": 2944,
+   "reason": "upstream kitty file"
+  },
+  "kitty/window_list.py": {
+   "lines": 769,
+   "reason": "upstream kitty file"
+  },
+  "kitty_tests/base.py": {
+   "lines": 563,
+   "reason": "upstream kitty file"
+  },
+  "kitty_tests/datatypes.py": {
+   "lines": 1125,
+   "reason": "upstream kitty file"
+  },
+  "kitty_tests/dnd.py": {
+   "lines": 3380,
+   "reason": "upstream kitty file"
+  },
+  "kitty_tests/dnd_kitten.py": {
+   "lines": 552,
+   "reason": "upstream kitty file"
+  },
+  "kitty_tests/file_transmission.py": {
+   "lines": 682,
+   "reason": "upstream kitty file"
+  },
+  "kitty_tests/fonts.py": {
+   "lines": 1438,
+   "reason": "upstream kitty file"
+  },
+  "kitty_tests/graphics.py": {
+   "lines": 1734,
+   "reason": "upstream kitty file"
+  },
+  "kitty_tests/keys.py": {
+   "lines": 946,
+   "reason": "upstream kitty file"
+  },
+  "kitty_tests/layout.py": {
+   "lines": 1568,
+   "reason": "upstream kitty file"
+  },
+  "kitty_tests/main.py": {
+   "lines": 843,
+   "reason": "upstream kitty file"
+  },
+  "kitty_tests/multicell.py": {
+   "lines": 830,
+   "reason": "upstream kitty file"
+  },
+  "kitty_tests/options.py": {
+   "lines": 617,
+   "reason": "upstream kitty file"
+  },
+  "kitty_tests/parser.py": {
+   "lines": 1220,
+   "reason": "upstream kitty file"
+  },
+  "kitty_tests/screen.py": {
+   "lines": 2406,
+   "reason": "upstream kitty file"
+  },
+  "kitty_tests/shell_integration.py": {
+   "lines": 594,
+   "reason": "upstream kitty file"
+  },
+  "kitty_tests/slang.py": {
+   "lines": 581,
+   "reason": "upstream kitty file"
+  },
+  "kitty_tests/tab_bar.py": {
+   "lines": 594,
+   "reason": "upstream kitty file"
+  },
+  "kitty_tests/tab_drop.py": {
+   "lines": 1020,
+   "reason": "upstream kitty file"
+  },
+  "publish.py": {
+   "lines": 610,
+   "reason": "upstream kitty file"
+  },
+  "setup.py": {
+   "lines": 2538,
+   "reason": "upstream kitty file"
+  },
+  "tools/cli/command.go": {
+   "lines": 593,
+   "reason": "upstream kitty file"
+  },
+  "tools/cmd/mouse_demo/main.go": {
+   "lines": 580,
+   "reason": "upstream kitty file"
+  },
+  "tools/disk_cache/implementation.go": {
+   "lines": 504,
+   "reason": "upstream kitty file"
+  },
+  "tools/icons/file-types.go": {
+   "lines": 1128,
+   "reason": "upstream kitty file"
+  },
+  "tools/rsync/algorithm.go": {
+   "lines": 648,
+   "reason": "upstream kitty file"
+  },
+  "tools/simdstring/generate.go": {
+   "lines": 1673,
+   "reason": "upstream kitty file"
+  },
+  "tools/themes/collection.go": {
+   "lines": 943,
+   "reason": "upstream kitty file"
+  },
+  "tools/tui/graphics/command.go": {
+   "lines": 845,
+   "reason": "upstream kitty file"
+  },
+  "tools/tui/loop/api.go": {
+   "lines": 758,
+   "reason": "upstream kitty file"
+  },
+  "tools/tui/loop/run.go": {
+   "lines": 673,
+   "reason": "upstream kitty file"
+  },
+  "tools/tui/readline/actions.go": {
+   "lines": 688,
+   "reason": "upstream kitty file"
+  },
+  "tools/tui/sgr/insert-formatting.go": {
+   "lines": 530,
+   "reason": "upstream kitty file"
+  },
+  "tools/utils/file_at_fd.go": {
+   "lines": 710,
+   "reason": "upstream kitty file"
+  },
+  "tools/utils/style/indent-and-wrap.go": {
+   "lines": 534,
+   "reason": "upstream kitty file"
+  },
+  "tools/wcswidth/char-props-data.go": {
+   "lines": 3295,
+   "reason": "upstream kitty file"
+  }
+ }
+}

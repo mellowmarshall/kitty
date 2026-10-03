@@ -1,0 +1,9 @@
+# The fork's secret scan (the host ship queue runs gitleaks over each job's
+# commits). Upstream's GLFW X11 code has strings the generic rule takes for
+# API keys; upstream syncs bring new ones.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "upstream GLFW X11 identifiers, not secrets"
+paths = ['''^glfw/x11_window\.c$''']
