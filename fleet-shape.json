@@ -1,0 +1,455 @@
+{
+  "why": [
+    "The fleet shape (PLAYBOOK §6) of the kitty fork: a terminal emulator built and run on the user's own machine. Nothing is deployed: there are no apps, hosts, stores or providers. The program's code (codeRoots.kitty) reads the user's environment; build, release, docs and test scripts read names marked tooling."
+  ],
+  "apps": {},
+  "roles": {},
+  "env": {
+    "ASAN_OPTIONS": {
+      "why": "repo tooling reads it (kitty_tests/main.py)",
+      "apps": [],
+      "tooling": true
+    },
+    "BYPY_ARCH": {
+      "why": "repo tooling reads it (bypy/linux/__main__.py)",
+      "apps": [],
+      "tooling": true
+    },
+    "CC": {
+      "why": "repo tooling reads it (setup.py)",
+      "apps": [],
+      "tooling": true
+    },
+    "CFLAGS": {
+      "why": "repo tooling reads it (setup.py)",
+      "apps": [],
+      "tooling": true
+    },
+    "CPPFLAGS": {
+      "why": "repo tooling reads it (setup.py)",
+      "apps": [],
+      "tooling": true
+    },
+    "DEVELOP_ROOT": {
+      "why": "repo tooling reads it (setup.py)",
+      "apps": [],
+      "tooling": true
+    },
+    "ENV": {
+      "why": "the kitty program reads it (shell-integration/ssh/bootstrap.py)",
+      "apps": [
+        "kitty"
+      ]
+    },
+    "ENVINCLUDE": {
+      "why": "repo tooling reads it (kitty_tests/options.py)",
+      "apps": [],
+      "tooling": true
+    },
+    "GITHUB_WORKSPACE": {
+      "why": "repo tooling reads it (.github/workflows/ci.py)",
+      "apps": [],
+      "tooling": true
+    },
+    "GIT_DIR": {
+      "why": "the kitty program reads it (kittens/choose_files/scan.go)",
+      "apps": [
+        "kitty"
+      ]
+    },
+    "HISTFILE": {
+      "why": "the kitty program reads it (shell-integration/ssh/bootstrap.py)",
+      "apps": [
+        "kitty"
+      ]
+    },
+    "KITTEN_EXE_FOR_DOCS": {
+      "why": "repo tooling reads it (docs/conf.py, setup.py)",
+      "apps": [],
+      "tooling": true
+    },
+    "KITTEN_RUNNING_AS_UI": {
+      "why": "the kitty program reads it (tools/tui/ui_kitten.go)",
+      "apps": [
+        "kitty"
+      ]
+    },
+    "KITTY_BASH_INJECT": {
+      "why": "the kitty program reads it (shell-integration/ssh/bootstrap.py)",
+      "apps": [
+        "kitty"
+      ]
+    },
+    "KITTY_BASH_UNEXPORT_HISTFILE": {
+      "why": "the kitty program reads it (shell-integration/ssh/bootstrap.py)",
+      "apps": [
+        "kitty"
+      ]
+    },
+    "KITTY_BASIC_COLORS": {
+      "why": "the kitty program reads it (tools/tui/ui_kitten.go)",
+      "apps": [
+        "kitty"
+      ]
+    },
+    "KITTY_BUNDLE": {
+      "why": "repo tooling reads it (.github/workflows/ci.py)",
+      "apps": [],
+      "tooling": true
+    },
+    "KITTY_CACHE_DIRECTORY": {
+      "why": "the kitty program reads it (kitty/constants.py, tools/utils/paths.go)",
+      "apps": [
+        "kitty"
+      ]
+    },
+    "KITTY_CANBERRA_LIBRARY": {
+      "why": "repo tooling reads it (setup.py)",
+      "apps": [],
+      "tooling": true
+    },
+    "KITTY_CODEQL": {
+      "why": "repo tooling reads it (.github/workflows/ci.py)",
+      "apps": [],
+      "tooling": true
+    },
+    "KITTY_CONFIG_DIRECTORY": {
+      "why": "the kitty program reads it (kittens/runner.py, tools/utils/paths.go)",
+      "apps": [
+        "kitty"
+      ]
+    },
+    "KITTY_DISABLE_WAYLAND": {
+      "why": "the kitty program reads it (kitty/constants.py)",
+      "apps": [
+        "kitty"
+      ]
+    },
+    "KITTY_EGL_LIBRARY": {
+      "why": "repo tooling reads it (setup.py)",
+      "apps": [],
+      "tooling": true
+    },
+    "KITTY_FISH_XDG_DATA_DIR": {
+      "why": "the kitty program reads it (shell-integration/ssh/bootstrap.py)",
+      "apps": [
+        "kitty"
+      ]
+    },
+    "KITTY_FONTCONFIG_LIBRARY": {
+      "why": "repo tooling reads it (setup.py)",
+      "apps": [],
+      "tooling": true
+    },
+    "KITTY_INSTALLATION_DIR": {
+      "why": "the kitty program reads it (tools/tui/shell_integration/api.go)",
+      "apps": [
+        "kitty"
+      ]
+    },
+    "KITTY_KITTEN_RUN_MODULE": {
+      "why": "the kitty program reads it (tools/cmd/main.go)",
+      "apps": [
+        "kitty"
+      ]
+    },
+    "KITTY_LISTEN_ON": {
+      "why": "the kitty program reads it (kittens/ssh/main.go, kittens/tui/handler.py and 1 more)",
+      "apps": [
+        "kitty"
+      ]
+    },
+    "KITTY_ORIG_ZDOTDIR": {
+      "why": "the kitty program reads it (shell-integration/ssh/bootstrap.py)",
+      "apps": [
+        "kitty"
+      ]
+    },
+    "KITTY_OS": {
+      "why": "the kitty program reads it (kitty/conf/utils.py)",
+      "apps": [
+        "kitty"
+      ]
+    },
+    "KITTY_PATH_TO_KITTY_EXE": {
+      "why": "the kitty program reads it (kitty/fonts/list.py, tools/utils/paths.go)",
+      "apps": [
+        "kitty"
+      ]
+    },
+    "KITTY_PID": {
+      "why": "the kitty program reads it (kittens/ssh/main.go, tools/config/api.go and 1 more)",
+      "apps": [
+        "kitty"
+      ]
+    },
+    "KITTY_PUBLIC_KEY": {
+      "why": "the kitty program reads it (kittens/ssh/main.go, kittens/transfer/utils.go and 2 more). Not a secret: kitty puts its remote-control public key in each child's environment.",
+      "apps": [
+        "kitty"
+      ],
+      "secret": false
+    },
+    "KITTY_RC_PASSWORD": {
+      "why": "the kitty program reads it (kittens/tui/handler.py). Not a fleet secret: a remote-control password the user sets in their own shell; no vendor issues it and nothing stores, deploys or rotates it.",
+      "apps": [
+        "kitty"
+      ],
+      "secret": false
+    },
+    "KITTY_RUNNING_BASH_INTEGRATION_TEST": {
+      "why": "the kitty program reads it (tools/tui/run.go)",
+      "apps": [
+        "kitty"
+      ]
+    },
+    "KITTY_RUNNING_SHELL_INTEGRATION_TEST": {
+      "why": "the kitty program reads it (tools/tui/run.go, tools/tui/shell_integration/api.go)",
+      "apps": [
+        "kitty"
+      ]
+    },
+    "KITTY_RUNTIME_DIRECTORY": {
+      "why": "the kitty program reads it (kitty/constants.py, tools/utils/paths.go)",
+      "apps": [
+        "kitty"
+      ]
+    },
+    "KITTY_SANITIZE": {
+      "why": "repo tooling reads it (.github/workflows/ci.py)",
+      "apps": [],
+      "tooling": true
+    },
+    "KITTY_SHELL_ACTIVE_TAB_ID": {
+      "why": "the kitty program reads it (tools/cmd/at/shell.go)",
+      "apps": [
+        "kitty"
+      ]
+    },
+    "KITTY_SHELL_ACTIVE_WINDOW_ID": {
+      "why": "the kitty program reads it (tools/cmd/at/shell.go)",
+      "apps": [
+        "kitty"
+      ]
+    },
+    "KITTY_SHELL_INTEGRATION": {
+      "why": "the kitty program reads it (shell-integration/ssh/bootstrap.py)",
+      "apps": [
+        "kitty"
+      ]
+    },
+    "KITTY_SSH_ASKPASS_HOST": {
+      "why": "the kitty program reads it (kittens/ssh/askpass.go)",
+      "apps": [
+        "kitty"
+      ]
+    },
+    "KITTY_SSH_ASKPASS_OVERRIDES": {
+      "why": "the kitty program reads it (kittens/ssh/askpass.go)",
+      "apps": [
+        "kitty"
+      ]
+    },
+    "KITTY_SSH_ASKPASS_USER": {
+      "why": "the kitty program reads it (kittens/ssh/askpass.go)",
+      "apps": [
+        "kitty"
+      ]
+    },
+    "KITTY_STARTUP_NOTIFICATION_LIBRARY": {
+      "why": "repo tooling reads it (setup.py)",
+      "apps": [],
+      "tooling": true
+    },
+    "KITTY_STDIO_FORWARDED": {
+      "why": "the kitty program reads it (kittens/choose_fonts/backend.py)",
+      "apps": [
+        "kitty"
+      ]
+    },
+    "KITTY_SYSTEMD_LIBRARY": {
+      "why": "repo tooling reads it (setup.py)",
+      "apps": [],
+      "tooling": true
+    },
+    "KITTY_WINDOW_ID": {
+      "why": "the kitty program reads it (kittens/ssh/main.go, tools/cmd/at/main.go)",
+      "apps": [
+        "kitty"
+      ]
+    },
+    "LDFLAGS": {
+      "why": "repo tooling reads it (setup.py)",
+      "apps": [],
+      "tooling": true
+    },
+    "LD_LIBRARY_PATH": {
+      "why": "repo tooling reads it (.github/workflows/ci.py)",
+      "apps": [],
+      "tooling": true
+    },
+    "MANPATH": {
+      "why": "the kitty program reads it (kitty/main.py)",
+      "apps": [
+        "kitty"
+      ]
+    },
+    "OVERLAID_WINDOW_COLS": {
+      "why": "the kitty program reads it (kittens/hints/main.go)",
+      "apps": [
+        "kitty"
+      ]
+    },
+    "OVERRIDE_CFLAGS": {
+      "why": "repo tooling reads it (setup.py)",
+      "apps": [],
+      "tooling": true
+    },
+    "OVERRIDE_CPPFLAGS": {
+      "why": "repo tooling reads it (setup.py)",
+      "apps": [],
+      "tooling": true
+    },
+    "OVERRIDE_LDFLAGS": {
+      "why": "repo tooling reads it (setup.py)",
+      "apps": [],
+      "tooling": true
+    },
+    "PENV": {
+      "why": "repo tooling reads it (publish.py)",
+      "apps": [],
+      "tooling": true
+    },
+    "PKGCONFIG_EXE": {
+      "why": "repo tooling reads it (setup.py)",
+      "apps": [],
+      "tooling": true
+    },
+    "PKG_CONFIG_PATH": {
+      "why": "repo tooling reads it (.github/workflows/ci.py)",
+      "apps": [],
+      "tooling": true
+    },
+    "PYTHONHOME": {
+      "why": "repo tooling reads it (.github/workflows/ci.py)",
+      "apps": [],
+      "tooling": true
+    },
+    "SLANGC": {
+      "why": "the kitty program reads it (kitty/constants.py); repo tooling reads it (.github/workflows/ci.py, kitty_tests/main.py)",
+      "apps": [
+        "kitty"
+      ],
+      "tooling": true
+    },
+    "SOURCE_DATE_EPOCH": {
+      "why": "the kitty program reads it (tools/cli/help.go)",
+      "apps": [
+        "kitty"
+      ]
+    },
+    "SSH_ASKPASS": {
+      "why": "the kitty program reads it (kittens/ssh/main.go)",
+      "apps": [
+        "kitty"
+      ]
+    },
+    "SSH_ASKPASS_PROMPT": {
+      "why": "the kitty program reads it (kittens/ssh/askpass.go)",
+      "apps": [
+        "kitty"
+      ]
+    },
+    "SSH_KITTEN_KITTY_DIR": {
+      "why": "the kitty program reads it (shell-integration/ssh/bootstrap.py)",
+      "apps": [
+        "kitty"
+      ]
+    },
+    "SSL_CERT_FILE": {
+      "why": "the kitty program reads it (kitty/entry_points.py)",
+      "apps": [
+        "kitty"
+      ]
+    },
+    "SW": {
+      "why": "repo tooling reads it (.github/workflows/ci.py)",
+      "apps": [],
+      "tooling": true
+    },
+    "TERMINFO": {
+      "why": "the kitty program reads it (shell-integration/ssh/bootstrap.py, tools/tui/shell_integration/api.go)",
+      "apps": [
+        "kitty"
+      ]
+    },
+    "TERMINFO_DIRS": {
+      "why": "the kitty program reads it (tools/cmd/run_shell/main.go, tools/tui/shell_integration/api.go)",
+      "apps": [
+        "kitty"
+      ]
+    },
+    "TMUX": {
+      "why": "the kitty program reads it (kittens/tui/utils.py, tools/tui/tmux.go)",
+      "apps": [
+        "kitty"
+      ]
+    },
+    "WAYLAND_DISPLAY": {
+      "why": "the kitty program reads it (kitty/constants.py)",
+      "apps": [
+        "kitty"
+      ]
+    },
+    "WAYLAND_SOCKET": {
+      "why": "the kitty program reads it (kitty/constants.py)",
+      "apps": [
+        "kitty"
+      ]
+    },
+    "WINDOWID": {
+      "why": "the kitty program reads it (kittens/ssh/main.go)",
+      "apps": [
+        "kitty"
+      ]
+    },
+    "XDG_CONFIG_DIRS": {
+      "why": "the kitty program reads it (tools/utils/paths.go)",
+      "apps": [
+        "kitty"
+      ]
+    },
+    "XDG_CURRENT_DESKTOP": {
+      "why": "the kitty program reads it (kittens/desktop_ui/portal.go)",
+      "apps": [
+        "kitty"
+      ]
+    },
+    "XDG_DATA_DIRS": {
+      "why": "the kitty program reads it (kittens/desktop_ui/portal.go, kitty/xdg.py and 1 more)",
+      "apps": [
+        "kitty"
+      ]
+    },
+    "ZDOTDIR": {
+      "why": "the kitty program reads it (shell-integration/ssh/bootstrap.py)",
+      "apps": [
+        "kitty"
+      ]
+    }
+  },
+  "stores": {},
+  "permissions": {},
+  "providers": {},
+  "codeRoots": {
+    "kitty": {
+      "why": "The kitty program and its kittens (Python, Go and the shell integration it ships), run on the user's machine with the user's environment.",
+      "roots": [
+        "kitty/",
+        "kittens/",
+        "tools/",
+        "shell-integration/"
+      ]
+    }
+  }
+}

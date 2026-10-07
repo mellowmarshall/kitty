@@ -1,0 +1,886 @@
+{
+  "entries": [
+    {
+      "rule": "size",
+      "file": "docs/conf.py",
+      "lines": 622,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size",
+      "file": "gen/color_names.py",
+      "lines": 786,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size",
+      "file": "gen/go_code.py",
+      "lines": 866,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size",
+      "file": "gen/wcwidth.py",
+      "lines": 1027,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size",
+      "file": "kittens/choose_files/main.go",
+      "lines": 985,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size",
+      "file": "kittens/choose_files/scan.go",
+      "lines": 687,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size",
+      "file": "kittens/command_palette/main.go",
+      "lines": 857,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size",
+      "file": "kittens/desktop_ui/portal.go",
+      "lines": 911,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size",
+      "file": "kittens/diff/patch.go",
+      "lines": 572,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size",
+      "file": "kittens/diff/render.go",
+      "lines": 830,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size",
+      "file": "kittens/diff/ui.go",
+      "lines": 751,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size",
+      "file": "kittens/dnd/drop.go",
+      "lines": 879,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size",
+      "file": "kittens/hints/marks.go",
+      "lines": 723,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size",
+      "file": "kittens/ssh/main.go",
+      "lines": 867,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size",
+      "file": "kittens/themes/ui.go",
+      "lines": 596,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size",
+      "file": "kittens/transfer/receive.go",
+      "lines": 1109,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size",
+      "file": "kittens/transfer/send.go",
+      "lines": 1197,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size",
+      "file": "kittens/tui/images.py",
+      "lines": 519,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size",
+      "file": "kittens/tui/spinners.py",
+      "lines": 674,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size",
+      "file": "kittens/unicode_input/main.go",
+      "lines": 605,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size",
+      "file": "kitty/boss.py",
+      "lines": 3777,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size",
+      "file": "kitty/child.py",
+      "lines": 575,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size",
+      "file": "kitty/cli.py",
+      "lines": 581,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size",
+      "file": "kitty/clipboard.py",
+      "lines": 621,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size",
+      "file": "kitty/conf/generate.py",
+      "lines": 670,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size",
+      "file": "kitty/conf/types.py",
+      "lines": 668,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size",
+      "file": "kitty/file_transmission.py",
+      "lines": 1124,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size",
+      "file": "kitty/launch.py",
+      "lines": 1304,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size",
+      "file": "kitty/layout/base.py",
+      "lines": 676,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size",
+      "file": "kitty/layout/splits.py",
+      "lines": 1000,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size",
+      "file": "kitty/main.py",
+      "lines": 554,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size",
+      "file": "kitty/notifications.py",
+      "lines": 940,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size",
+      "file": "kitty/options/definition.py",
+      "lines": 4458,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size",
+      "file": "kitty/options/parse.py",
+      "lines": 1170,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size",
+      "file": "kitty/options/types.py",
+      "lines": 1610,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size",
+      "file": "kitty/options/utils.py",
+      "lines": 1575,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size",
+      "file": "kitty/session.py",
+      "lines": 628,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size",
+      "file": "kitty/shaders/slang.py",
+      "lines": 1392,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size",
+      "file": "kitty/simple_cli_definitions.py",
+      "lines": 752,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size",
+      "file": "kitty/tab_bar.py",
+      "lines": 1100,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size",
+      "file": "kitty/tabs.py",
+      "lines": 2155,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size",
+      "file": "kitty/utils.py",
+      "lines": 1009,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size",
+      "file": "kitty/window.py",
+      "lines": 2565,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size",
+      "file": "kitty/window_list.py",
+      "lines": 647,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size",
+      "file": "publish.py",
+      "lines": 512,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size",
+      "file": "setup.py",
+      "lines": 2206,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size",
+      "file": "tools/cli/command.go",
+      "lines": 527,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size",
+      "file": "tools/icons/file-types.go",
+      "lines": 1118,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size",
+      "file": "tools/rsync/algorithm.go",
+      "lines": 556,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size",
+      "file": "tools/simdstring/generate.go",
+      "lines": 1509,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size",
+      "file": "tools/themes/collection.go",
+      "lines": 892,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size",
+      "file": "tools/tui/graphics/command.go",
+      "lines": 697,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size",
+      "file": "tools/tui/loop/api.go",
+      "lines": 594,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size",
+      "file": "tools/tui/loop/run.go",
+      "lines": 617,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size",
+      "file": "tools/tui/readline/actions.go",
+      "lines": 643,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size",
+      "file": "tools/utils/file_at_fd.go",
+      "lines": 579,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size",
+      "file": "tools/wcswidth/char-props-data.go",
+      "lines": 3231,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": ".github/workflows/macos_crash_report.py",
+      "lines": 541,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "bypy/macos/__main__.py",
+      "lines": 545,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "docs/conf.py",
+      "lines": 848,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "gen/color_names.py",
+      "lines": 802,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "gen/go_code.py",
+      "lines": 1034,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "gen/key_constants.py",
+      "lines": 504,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "gen/wcwidth.py",
+      "lines": 1259,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "kittens/choose_files/main.go",
+      "lines": 1050,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "kittens/choose_files/scan.go",
+      "lines": 753,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "kittens/command_palette/main.go",
+      "lines": 1053,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "kittens/desktop_ui/portal.go",
+      "lines": 982,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "kittens/diff/patch.go",
+      "lines": 655,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "kittens/diff/render.go",
+      "lines": 886,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "kittens/diff/ui.go",
+      "lines": 804,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "kittens/dnd/drag.go",
+      "lines": 528,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "kittens/dnd/drop.go",
+      "lines": 948,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "kittens/hints/marks.go",
+      "lines": 787,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "kittens/ssh/main.go",
+      "lines": 941,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "kittens/themes/ui.go",
+      "lines": 660,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "kittens/transfer/receive.go",
+      "lines": 1197,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "kittens/transfer/send.go",
+      "lines": 1288,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "kittens/tui/images.py",
+      "lines": 611,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "kittens/tui/spinners.py",
+      "lines": 687,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "kittens/unicode_input/main.go",
+      "lines": 665,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "kitty/boss.py",
+      "lines": 4251,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "kitty/child.py",
+      "lines": 717,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "kitty/cli.py",
+      "lines": 747,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "kitty/clipboard.py",
+      "lines": 735,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "kitty/conf/generate.py",
+      "lines": 748,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "kitty/conf/types.py",
+      "lines": 781,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "kitty/conf/utils.py",
+      "lines": 574,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "kitty/file_transmission.py",
+      "lines": 1285,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "kitty/fonts/common.py",
+      "lines": 579,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "kitty/launch.py",
+      "lines": 1451,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "kitty/layout/base.py",
+      "lines": 822,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "kitty/layout/splits.py",
+      "lines": 1146,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "kitty/main.py",
+      "lines": 669,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "kitty/notifications.py",
+      "lines": 1112,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "kitty/options/definition.py",
+      "lines": 4917,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "kitty/options/parse.py",
+      "lines": 1706,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "kitty/options/types.py",
+      "lines": 1756,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "kitty/options/utils.py",
+      "lines": 1974,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "kitty/remote_control.py",
+      "lines": 531,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "kitty/session.py",
+      "lines": 743,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "kitty/shaders/slang.py",
+      "lines": 1659,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "kitty/simple_cli_definitions.py",
+      "lines": 817,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "kitty/tab_bar.py",
+      "lines": 1273,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "kitty/tabs.py",
+      "lines": 2448,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "kitty/terminfo.py",
+      "lines": 576,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "kitty/utils.py",
+      "lines": 1299,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "kitty/window.py",
+      "lines": 2954,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "kitty/window_list.py",
+      "lines": 769,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "publish.py",
+      "lines": 610,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "setup.py",
+      "lines": 2538,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "tools/cli/command.go",
+      "lines": 593,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "tools/cmd/mouse_demo/main.go",
+      "lines": 580,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "tools/disk_cache/implementation.go",
+      "lines": 504,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "tools/icons/file-types.go",
+      "lines": 1128,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "tools/rsync/algorithm.go",
+      "lines": 648,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "tools/simdstring/generate.go",
+      "lines": 1673,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "tools/themes/collection.go",
+      "lines": 944,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "tools/tui/graphics/command.go",
+      "lines": 845,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "tools/tui/loop/api.go",
+      "lines": 758,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "tools/tui/loop/run.go",
+      "lines": 673,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "tools/tui/readline/actions.go",
+      "lines": 688,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "tools/tui/sgr/insert-formatting.go",
+      "lines": 530,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "tools/utils/file_at_fd.go",
+      "lines": 710,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "tools/utils/style/indent-and-wrap.go",
+      "lines": 534,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "size-raw",
+      "file": "tools/wcswidth/char-props-data.go",
+      "lines": 3295,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "contracts": {
+    "size": {
+      "exempt": {
+        "^kitty_tests/": "kitty's test suite: kitty's test runner (test.py) loads every module of the kitty_tests package, so its files carry no test suffix"
+      },
+      "baseline": "scripts/ship/baselines/size.baseline.json"
+    },
+    "tools": {
+      "baselines": "scripts/ship/baselines"
+    },
+    "fleet": {
+      "file": "fleet-shape.json"
+    },
+    "generations": {
+      "command": null
+    },
+    "intent": {
+      "contracts": {
+        "fleet": "fleet-shape.json"
+      }
+    }
+  },
+  "ci": {
+    "tools": [
+      "playbook@>=6",
+      "shellcheck@>=0.9",
+      "uv",
+      "osv-scanner@>=2",
+      "biome",
+      "curl@>=7.68"
+    ]
+  }
+}

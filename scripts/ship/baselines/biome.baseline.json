@@ -1,0 +1,145 @@
+{
+  "entries": [
+    {
+      "rule": "lint/complexity/useArrowFunction",
+      "file": "docs/_static/custom.js",
+      "fingerprint": "21c33570e08e80edcc039a21e335941a977f2549",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "lint/complexity/useArrowFunction",
+      "file": "docs/_static/custom.js",
+      "fingerprint": "4af19b1eec8acc18aa1c6ca3a106de7649fbede6",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "lint/complexity/useArrowFunction",
+      "file": "docs/_static/custom.js",
+      "fingerprint": "6469958cecb2ac56323b8e4d06e2c17e1c68ecb0",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "lint/complexity/useArrowFunction",
+      "file": "docs/_static/custom.js",
+      "fingerprint": "6664daae7dc313d5150ddcbbe8a0dcf6b9f812bd",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "lint/complexity/useArrowFunction",
+      "file": "docs/_static/custom.js",
+      "fingerprint": "c5a51bbb14b9b71cff36e00b0e9a1f76b4dad461",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "lint/complexity/useArrowFunction",
+      "file": "docs/_static/custom.js",
+      "fingerprint": "d3f23966fb17bea3c3312bc6532d263451f0a3ec",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "lint/complexity/useOptionalChain",
+      "file": "docs/_static/custom.js",
+      "fingerprint": "5d7bd72f328e6c3ff824cadec55f4a98a869dd0c",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "lint/correctness/noInnerDeclarations",
+      "file": "docs/_static/custom.js",
+      "fingerprint": "6e0f1e685f8de986be6b27f40e9ac2029f5a44c7",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "lint/style/useTemplate",
+      "file": "docs/_static/custom.js",
+      "fingerprint": "11ce46a57811f63de3330d19b90e39fb8dae10f2",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "lint/style/useTemplate",
+      "file": "docs/_static/custom.js",
+      "fingerprint": "6e0f1e685f8de986be6b27f40e9ac2029f5a44c7",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "lint/style/useTemplate",
+      "file": "docs/_static/custom.js",
+      "fingerprint": "c8ee48e1f807bf0e7b0dd721fd24997a8ac83ee7",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "lint/suspicious/noDoubleEquals",
+      "file": "docs/_static/custom.js",
+      "fingerprint": "613bc50de3a4b697e7777a8b3ec9a56d1fa2add0",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "lint/suspicious/noRedundantUseStrict",
+      "file": "docs/_static/custom.js",
+      "fingerprint": "8f75a48ad4f7cad21e6a885a1aff81ced8b4d74b",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "lint/complexity/useArrowFunction",
+      "file": "docs/_static/timestamps.js",
+      "fingerprint": "4af19b1eec8acc18aa1c6ca3a106de7649fbede6",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "lint/correctness/useParseIntRadix",
+      "file": "docs/_static/timestamps.js",
+      "fingerprint": "6503d5d55430bbfaf8e89d37a6305daa84c18404",
+      "count": 2,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "lint/style/useTemplate",
+      "file": "docs/_static/timestamps.js",
+      "fingerprint": "13b27d11734fa92e04eef9f09b6840f671c749e1",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "lint/style/useTemplate",
+      "file": "docs/_static/timestamps.js",
+      "fingerprint": "7d85c78f83663c001aba0fa550ef7bbcdb42f6d8",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "lint/suspicious/noRedundantUseStrict",
+      "file": "docs/_static/timestamps.js",
+      "fingerprint": "89b72153bd7e6390415ba25b9b5fbe750e6e16d5",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "lint/complexity/noArguments",
+      "file": "docs/_templates/base.html",
+      "fingerprint": "c1666b9563cb79db12fe23a02cb81565ea4ffa33",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "lint/a11y/useGenericFontNames",
+      "file": "docs/support.html",
+      "fingerprint": "8ac22091dfa7dcdc988defd12df3db616f155c0b",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    }
+  ]
+}

@@ -1,0 +1,95 @@
+{
+  "entries": [
+    {
+      "rule": "suppression",
+      "file": "docs/conf.py",
+      "fingerprint": "6673bac8ae71285ceb391a54639302ba14b592cb",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "suppression",
+      "file": "docs/conf.py",
+      "fingerprint": "9e8ef8c998e7e06241d3c81514ca4ac342379d62",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "suppression",
+      "file": "docs/conf.py",
+      "fingerprint": "a14e3fdf89465caf760fa93d6c30b84bf64739b1",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "suppression",
+      "file": "docs/conf.py",
+      "fingerprint": "b20dd754642cc70d1f362c138f20eafed1260f7e",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "suppression",
+      "file": "docs/conf.py",
+      "fingerprint": "e7c759a7c4574568ae45d02aab3d855e2e7c5a4a",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "suppression",
+      "file": "kittens/tui/images.py",
+      "fingerprint": "2c841408db22983985207ecc4cc11a0443099a71",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "suppression",
+      "file": "kittens/tui/images.py",
+      "fingerprint": "2db2f90e1fd9ee1830ce596a76abba144a29420d",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "suppression",
+      "file": "kittens/tui/operations.py",
+      "fingerprint": "3fe51812950c6a8d50cb940818cdb84dc0c2eff6",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "suppression",
+      "file": "kitty/conf/generate.py",
+      "fingerprint": "2c824ec0ad31fbbf3f4b23a065ed17375fe20d3d",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "suppression",
+      "file": "kitty/options/parse.py",
+      "fingerprint": "8f2b1ed3b89e01c363080092bafc0e4b279f19b0",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "suppression",
+      "file": "kitty/options/types.py",
+      "fingerprint": "8f2b1ed3b89e01c363080092bafc0e4b279f19b0",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "suppression",
+      "file": "kitty_tests/keys.py",
+      "fingerprint": "56df0d11bfa5b7a5eaab6642564c108b5cb5dc00",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "suppression",
+      "file": "shell-integration/ssh/bootstrap.py",
+      "fingerprint": "20755c1da56215c2b8e7f8744515ad8fc720550e",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    }
+  ]
+}

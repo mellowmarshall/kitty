@@ -1,0 +1,501 @@
+{
+  "entries": [
+    {
+      "rule": "SC2088",
+      "file": "docs/installer.sh",
+      "fingerprint": "566d56b58f7e14c342b4b3ff5fac16fe7d65de44",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC2166",
+      "file": "docs/installer.sh",
+      "fingerprint": "2da27507a3d02a54f880a0d2ef9986f370abb780",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC2166",
+      "file": "docs/installer.sh",
+      "fingerprint": "b1dcb17582b2ad53fe103cc986db93332988381f",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC1003",
+      "file": "shell-integration/bash/kitty.bash",
+      "fingerprint": "4c9250ed41a9debec9e9089ac9fa4d37aec0af14",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC1003",
+      "file": "shell-integration/bash/kitty.bash",
+      "fingerprint": "9c0a6c7318f0a3bdec41b91fc7f886497496ff55",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC1007",
+      "file": "shell-integration/bash/kitty.bash",
+      "fingerprint": "d7752a29b2b1f75196368f581ea6683abc7e6085",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC2004",
+      "file": "shell-integration/bash/kitty.bash",
+      "fingerprint": "54a35df7b4eca4ab5fbc1cd483f63fb4ec391b9a",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC2004",
+      "file": "shell-integration/bash/kitty.bash",
+      "fingerprint": "e7e27dcfac99867b45c60ec9e863b331642bab41",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC2016",
+      "file": "shell-integration/bash/kitty.bash",
+      "fingerprint": "e403385b84459574c5e0453e3e2706592f002dfd",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC2068",
+      "file": "shell-integration/bash/kitty.bash",
+      "fingerprint": "6df895cbbb44caa7cd81890444437130ac29ed05",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC2102",
+      "file": "shell-integration/bash/kitty.bash",
+      "fingerprint": "168c73762d202c5bbf10c378011cb53b4eedae5e",
+      "count": 5,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC2123",
+      "file": "shell-integration/bash/kitty.bash",
+      "fingerprint": "e0a1cf9e6a280573095ed30e6a8b85a959b72c1f",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC2154",
+      "file": "shell-integration/bash/kitty.bash",
+      "fingerprint": "a0bb0fc4424a54cf531744d01616c1edb2a3d2e4",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC2155",
+      "file": "shell-integration/bash/kitty.bash",
+      "fingerprint": "c09ac6efec7f70430d4ee61bcabaac57e57b9272",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC2166",
+      "file": "shell-integration/bash/kitty.bash",
+      "fingerprint": "d524c61d6162f8acfc88364007672d13019f0cdb",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC2178",
+      "file": "shell-integration/bash/kitty.bash",
+      "fingerprint": "70cfad9a9070ec81d6ac71b5327382f1c0deaffe",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC2178",
+      "file": "shell-integration/bash/kitty.bash",
+      "fingerprint": "b216a1f284e0beb7aac9fcff17589cdb22b02399",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC2179",
+      "file": "shell-integration/bash/kitty.bash",
+      "fingerprint": "f30e317d2956a7dc334fe5cf3d3553badde6782f",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC2181",
+      "file": "shell-integration/bash/kitty.bash",
+      "fingerprint": "3da372a49412fa1aad71d94832060c9f2c272f80",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC2184",
+      "file": "shell-integration/bash/kitty.bash",
+      "fingerprint": "168c73762d202c5bbf10c378011cb53b4eedae5e",
+      "count": 6,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC2016",
+      "file": "shell-integration/ssh/bootstrap-utils.sh",
+      "fingerprint": "06633f7f74b7b7a552d365431be22cda87ff1f50",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC2016",
+      "file": "shell-integration/ssh/bootstrap-utils.sh",
+      "fingerprint": "5bf8e5bcbc6b31f2da6e3a507287438612975737",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC2016",
+      "file": "shell-integration/ssh/bootstrap-utils.sh",
+      "fingerprint": "ce4fad130e2ce12a19744fa5e7a1932fa4cb6f0b",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC2086",
+      "file": "shell-integration/ssh/bootstrap-utils.sh",
+      "fingerprint": "4c519eab9232da332f5a5c364809e845bc6795b1",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC2093",
+      "file": "shell-integration/ssh/bootstrap-utils.sh",
+      "fingerprint": "a98b5a5006f4fa9387c8a975b96c1c5031941562",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC2154",
+      "file": "shell-integration/ssh/bootstrap-utils.sh",
+      "fingerprint": "4bd0c494c793643d6263d1f83862a8b23e76fb55",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC2154",
+      "file": "shell-integration/ssh/bootstrap-utils.sh",
+      "fingerprint": "5bf8e5bcbc6b31f2da6e3a507287438612975737",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC2154",
+      "file": "shell-integration/ssh/bootstrap-utils.sh",
+      "fingerprint": "f96d507b1bdb0a7c1ec32fa3d8737ba1545a2ff4",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC2154",
+      "file": "shell-integration/ssh/bootstrap-utils.sh",
+      "fingerprint": "fb995cf54bb88df6d31c7f0d510fa02aa579c534",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC2164",
+      "file": "shell-integration/ssh/bootstrap-utils.sh",
+      "fingerprint": "392e711c0066cc551f35bcb4247b4f9d3e780a02",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC2164",
+      "file": "shell-integration/ssh/bootstrap-utils.sh",
+      "fingerprint": "5142e15adb5e64e5376d4e6a67d085c69e7e4a6f",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC2164",
+      "file": "shell-integration/ssh/bootstrap-utils.sh",
+      "fingerprint": "a87514fa6f6f809bde6b322c0883bbaa15b942b4",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC2166",
+      "file": "shell-integration/ssh/bootstrap-utils.sh",
+      "fingerprint": "69dd477dc947debcd99bde0b1a4660738c1d769c",
+      "count": 3,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC2166",
+      "file": "shell-integration/ssh/bootstrap-utils.sh",
+      "fingerprint": "7d85dc76cd4850ef5a62c3617562b71c026b3667",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC2166",
+      "file": "shell-integration/ssh/bootstrap-utils.sh",
+      "fingerprint": "e8916c8bfb4d5f670ab2e6bb1a2a2d1606c6c49c",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC2166",
+      "file": "shell-integration/ssh/bootstrap-utils.sh",
+      "fingerprint": "fb995cf54bb88df6d31c7f0d510fa02aa579c534",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC2181",
+      "file": "shell-integration/ssh/bootstrap-utils.sh",
+      "fingerprint": "952f169b1103a6afb60d9e7355c41a7a4fb2b514",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC3038",
+      "file": "shell-integration/ssh/bootstrap-utils.sh",
+      "fingerprint": "dfa6ce8fd7437dc3e3e571beb86cc069f81864c1",
+      "count": 2,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC1091",
+      "file": "shell-integration/ssh/bootstrap.sh",
+      "fingerprint": "5c8d708bbf842296fd1d0f9be27faef8d3fa96e8",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC1091",
+      "file": "shell-integration/ssh/bootstrap.sh",
+      "fingerprint": "b04698a3a4eb13f375fef915371ec1e9baf2b270",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC2016",
+      "file": "shell-integration/ssh/bootstrap.sh",
+      "fingerprint": "73c05bd951a1892090ecc2a72210f9c6f8ea2a93",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC2016",
+      "file": "shell-integration/ssh/bootstrap.sh",
+      "fingerprint": "885c7cf9b2f5b5c20e89272621361636c624af54",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC2034",
+      "file": "shell-integration/ssh/bootstrap.sh",
+      "fingerprint": "362cb01f1aa2c88f56e69a9fe7d8a04916b395d0",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC2034",
+      "file": "shell-integration/ssh/bootstrap.sh",
+      "fingerprint": "49d1914ebed34adf50b36bc0bd257f6c582af642",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC2034",
+      "file": "shell-integration/ssh/bootstrap.sh",
+      "fingerprint": "533ad1c13767c7bf5060138b2bcb2f664d6d53a9",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC2034",
+      "file": "shell-integration/ssh/bootstrap.sh",
+      "fingerprint": "6540f325bded1ec04bc84d3d33b6e3ba861cbd9e",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC2034",
+      "file": "shell-integration/ssh/bootstrap.sh",
+      "fingerprint": "6d677827877a1daf1bf23e082319bebd59e04bc5",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC2034",
+      "file": "shell-integration/ssh/bootstrap.sh",
+      "fingerprint": "93bc3bc34520f0202404265d8ad037718d9c6c5c",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC2050",
+      "file": "shell-integration/ssh/bootstrap.sh",
+      "fingerprint": "8e1b2f88e06f74fb008fb306337485486c12fa17",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC2050",
+      "file": "shell-integration/ssh/bootstrap.sh",
+      "fingerprint": "ce0b8592add2cae5924c097fb0622b3dfccec826",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC2140",
+      "file": "shell-integration/ssh/bootstrap.sh",
+      "fingerprint": "249e0c50bfbbc7ea46e10c9aa542692414cadaaa",
+      "count": 3,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC2153",
+      "file": "shell-integration/ssh/bootstrap.sh",
+      "fingerprint": "49d1914ebed34adf50b36bc0bd257f6c582af642",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC2166",
+      "file": "shell-integration/ssh/bootstrap.sh",
+      "fingerprint": "7acec07457cbaf60a208464219b5bd00acfdb63b",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC2166",
+      "file": "shell-integration/ssh/bootstrap.sh",
+      "fingerprint": "b15b5eee7c5049c1e6fb89eddef0dbc7784c37eb",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC2181",
+      "file": "shell-integration/ssh/bootstrap.sh",
+      "fingerprint": "d5c07ae990ff9f99d7eb70c3bb9d7a41610fb611",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC2034",
+      "file": "shell-integration/ssh/kitten",
+      "fingerprint": "139eebccda5ba93b3a588a7878a30ad97350010d",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC2034",
+      "file": "shell-integration/ssh/kitten",
+      "fingerprint": "60a7a261497509323fb6174201d4acb98aa12b3b",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC2166",
+      "file": "shell-integration/ssh/kitten",
+      "fingerprint": "1b894977987e60161bef33e8afe8f682482b8846",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC2166",
+      "file": "shell-integration/ssh/kitten",
+      "fingerprint": "b4b6295042dea4c90eb99ec9078b85f4d16d0770",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC2181",
+      "file": "shell-integration/ssh/kitten",
+      "fingerprint": "a321261f628cc4f0125b511093ab91c754d8d33a",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC2329",
+      "file": "shell-integration/ssh/kitten",
+      "fingerprint": "85a484c0ae88dc6394ac5893712bbfe84b00a877",
+      "count": 2,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC2034",
+      "file": "shell-integration/ssh/kitty",
+      "fingerprint": "60a7a261497509323fb6174201d4acb98aa12b3b",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC2166",
+      "file": "shell-integration/ssh/kitty",
+      "fingerprint": "265c11269253a68c6a520d5a5cc4e931d4efe8dd",
+      "count": 2,
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC2166",
+      "file": "shell-integration/ssh/kitty",
+      "fingerprint": "334fb975dcabf95a8595a002a7c89355cab3330a",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC2181",
+      "file": "shell-integration/ssh/kitty",
+      "fingerprint": "8dddd84f939e8500e7ebea61d36a01db01fc7b77",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC2181",
+      "file": "shell-integration/ssh/kitty",
+      "fingerprint": "a321261f628cc4f0125b511093ab91c754d8d33a",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC2181",
+      "file": "shell-integration/ssh/kitty",
+      "fingerprint": "d5c07ae990ff9f99d7eb70c3bb9d7a41610fb611",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC1071",
+      "file": "shell-integration/zsh/kitty-integration",
+      "fingerprint": "71144ae91c116da12df6e229f1bde0a163a252ec",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC3037",
+      "file": "tools/simdstring/test.sh",
+      "fingerprint": "b68fe68dacac1f2810d61e22d0867135fab362fd",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    },
+    {
+      "rule": "SC3037",
+      "file": "tools/simdstring/test.sh",
+      "fingerprint": "c867b514c291a110db62dc01bc167dc1b6a446e6",
+      "issue": "#4",
+      "expires": "2027-01-05"
+    }
+  ]
+}

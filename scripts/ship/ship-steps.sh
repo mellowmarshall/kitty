@@ -4,10 +4,9 @@
 # cannot change how it ships. .tree-guard.conf names each step.
 #
 #   ship-steps.sh body BODYFILE   the body names an issue (Closes #N)
-#   ship-steps.sh ci              build kitty and run its test suite
+#   ship-steps.sh ci              playbook check --ship, then build kitty and
+#                                 run its test suite
 #   ship-steps.sh merge PR        merge the tested head with a merge commit
-#   ship-steps.sh baseline REF    rewrite the size baseline for the files over
-#                                 the limit, against upstream at REF
 #
 # The fork carries upstream kitty plus its own branches. Merges keep their
 # commits (no squash), so the next merge of upstream into the fork finds
@@ -25,10 +24,10 @@ DEV_DEBS=(
   libfontconfig-dev libfreetype-dev libexpat1-dev libgl-dev libegl-dev libglvnd-dev libglx-dev
   libbrotli-dev libpng-dev zlib1g-dev libbz2-dev
 )
-# Upstream tests that fail on Ubuntu's own fonts, not on fork code: Ubuntu
-# ships Ubuntu Mono as one variable font, the test expects separate files.
-# They fail on unmodified upstream on these hosts.
-KNOWN_FAILURES='^FAIL: test_font_selection \(kitty_tests\.fonts\.Selection\.test_font_selection\) \((spec='"'"'ubuntu mono'"'"'|spec='"'"'family="ubuntu mono"'"'"')\)$'
+# The fonts kitty's font tests are written against: upstream's CI font set
+# (.github/workflows/ci.py FONTS_URL), pinned by its sha256.
+TEST_FONTS_URL=https://download.calibre-ebook.com/ci/fonts.tar.xz
+TEST_FONTS_SHA256=885bbd33b1a93d6e3493c137b995eea356eddd5392a0e3c9c0efaf3fb7b9fb06
 
 sysroot() { # -> path of a sysroot with DEV_DEBS, made once per host
   local root="${XDG_CACHE_HOME:-$HOME/.cache}/kitty-fork-ci/sysroot" want have
@@ -56,8 +55,28 @@ sysroot() { # -> path of a sysroot with DEV_DEBS, made once per host
   echo "$root"
 }
 
+test_fonts() { # -> path of the fontconfig file for the test run (needs the built kitty)
+  local root="${XDG_CACHE_HOME:-$HOME/.cache}/kitty-fork-ci/test-fonts" kitty=kitty/launcher/kitty
+  if [ "$(cat "$root/.sha256" 2>/dev/null)" != "$TEST_FONTS_SHA256" ]; then
+    rm -rf "$root" && mkdir -p "$root/fonts" || return 1
+    curl -fsSL --retry 3 -o "$root/fonts.tar.xz" "$TEST_FONTS_URL" || { echo "ci: test fonts download failed" >&2; return 1; }
+    echo "$TEST_FONTS_SHA256  $root/fonts.tar.xz" | sha256sum -c --quiet - || { echo "ci: test fonts sha256 differs" >&2; return 1; }
+    tar -xJf "$root/fonts.tar.xz" -C "$root/fonts" && rm -f "$root/fonts.tar.xz" || return 1
+    printf '<?xml version="1.0"?>\n<fontconfig>\n  <dir>%s/fonts</dir>\n  <cachedir>%s/cache</cachedir>\n</fontconfig>\n' "$root" "$root" > "$root/set.conf"
+    FONTCONFIG_FILE="$root/set.conf" "$kitty" +launch scripts/ship/test_fonts.py families > "$root/families" || return 1
+    [ -s "$root/families" ] || { echo "ci: no family in the test fonts" >&2; return 1; }
+    echo "$TEST_FONTS_SHA256" > "$root/.sha256"
+  fi
+  # Written each run: the host's fonts can change
+  "$kitty" +launch scripts/ship/test_fonts.py conf "$root" "$root/families" > "$root/fonts.conf" || return 1
+  echo "$root/fonts.conf"
+}
+
 run_ci() {
-  local root lib log status
+  local root lib log status fonts
+  # The playbook's contracts (playbook.json) first: seconds, where the build takes minutes
+  echo "=== ci: playbook check --ship $(date +%H:%M:%S)"
+  playbook check --ship || { echo "ci FAILED: playbook check"; return 1; }
   root=$(sysroot) || return 1
   lib="$root/usr/lib/x86_64-linux-gnu"
   export PKG_CONFIG_PATH="$lib/pkgconfig:$root/usr/share/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
@@ -66,22 +85,12 @@ run_ci() {
   echo "=== ci: build $(date +%H:%M:%S)"
   timeout 1800 ./dev.sh build || { echo "ci FAILED: build"; return 1; }
   echo "=== ci: tests $(date +%H:%M:%S)"
+  fonts=$(test_fonts) || { echo "ci FAILED: test fonts"; return 1; }
   log=$(mktemp)
-  timeout 1800 kitty/launcher/kitty +launch test.py 2>&1 | tee "$log"
+  FONTCONFIG_FILE="$fonts" timeout 1800 kitty/launcher/kitty +launch test.py 2>&1 | tee "$log"
   status=${PIPESTATUS[0]}
-  if [ "$status" != 0 ]; then
-    # Pass only when the run ended normally and failed by exactly the known
-    # failures: the summary counts failures and nothing else (no errors,
-    # worker errors, unexpected successes or Go failures), and every FAIL line
-    # is a known one.
-    local failures known summary
-    failures=$(grep -cE '^(FAIL|ERROR): ' "$log")
-    known=$(grep -cE "$KNOWN_FAILURES" "$log")
-    summary=$(grep -E '^(OK|FAILED)( |$)' "$log" | tail -1)
-    if [ "$failures" = 0 ] || [ "$failures" != "$known" ] || [ "$summary" != "FAILED (failures=$known)" ] || grep -q '^WORKER ERROR' "$log"; then
-      rm -f "$log"; echo "ci FAILED: tests"; return 1
-    fi
-    echo "ci: only the known upstream font failures"
+  if [ "$status" != 0 ] || grep -qE '^(FAIL|ERROR): |^WORKER ERROR' "$log"; then
+    rm -f "$log"; echo "ci FAILED: tests"; return 1
   fi
   rm -f "$log"
   echo "ci passed"
@@ -104,45 +113,12 @@ run_merge() { # PR
   return 1
 }
 
-# The size baseline: every source file the host ratchet covers that is over
-# its limit, with its lines and why. Upstream's files are upstream's to keep;
-# where the fork adds lines to one, the entry says how many. The fork's own
-# source files are never listed: they stay under the limit. Run after a merge
-# of upstream, or when a change adds lines to an upstream file.
-BASELINE=scripts/ship/size-baseline.json
-SOURCE='\.(ts|tsx|mts|cts|js|jsx|mjs|cjs|py|sh|bash|go|rs|rb|java|kt|kts|swift|c|cc|cpp|h|hpp|cs|php|scala|lua|dart|ex|exs|vue|svelte)$'
-EXEMPT='(^|/)(tests?|__tests__|spec|e2e|fixtures?|__fixtures__|migrations|drills|runbooks?|vendor|third_party|node_modules|dist|build|generated)(/|$)|(^|/)test_[^/]*\.py$|_test\.'
-write_baseline() { # UPSTREAM_REF
-  local upstream=${1:?usage: ship-steps.sh baseline UPSTREAM_REF} f n was entries=() bad=0
-  git rev-parse -q --verify "$upstream^{commit}" >/dev/null || { echo "baseline: no commit $upstream"; return 1; }
-  while IFS= read -r f; do
-    [[ "$f" =~ $SOURCE ]] && ! [[ "$f" =~ $EXEMPT ]] || continue
-    n=$(wc -l < "$f"); [ "$n" -gt 500 ] || continue
-    head -5 "$f" | grep -Eq '^[[:space:]]*(//|#|--|/\*)[[:space:]]*GENERATED from ' && continue
-    if was=$(git show "$upstream:$f" 2>/dev/null | wc -l) && git cat-file -e "$upstream:$f" 2>/dev/null; then
-      if [ "$n" -le "$was" ]; then entries+=("$f"$'\t'"$n"$'\t'"upstream kitty file")
-      else entries+=("$f"$'\t'"$n"$'\t'"upstream kitty file; the fork adds $((n - was)) lines"); fi
-    elif [[ "$f" == kitty_tests/* ]]; then entries+=("$f"$'\t'"$n"$'\t'"the fork's test suite")
-    else echo "baseline: $f is the fork's own source and over 500 lines: split it"; bad=1; fi
-  done < <(git ls-files)
-  [ "$bad" = 0 ] || return 1
-  printf '%s\n' "${entries[@]}" | python3 -c '
-import json, sys
-files = {}
-for line in sys.stdin.read().splitlines():
-    path, lines, reason = line.split("\t")
-    files[path] = {"lines": int(lines), "reason": reason}
-print(json.dumps({"files": files}, indent=1, sort_keys=True))' > "$BASELINE"
-  echo "baseline: ${#entries[@]} files in $BASELINE"
-}
-
 if [ "${BASH_SOURCE[0]}" = "$0" ]; then
   case "${1:-}" in
     body) grep -qE '[Cc]loses #[0-9]+' "$2" 2>/dev/null ||
         { echo "names no issue: write 'Closes #N' before submitting"; exit 1; } ;;
     ci) run_ci ;;
     merge) run_merge "$2" ;;
-    baseline) write_baseline "${2:-}" ;;
-    *) sed -n '2,11p' "$0" | sed 's/^# \{0,1\}//'; exit 2 ;;
+    *) sed -n '2,10p' "$0" | sed 's/^# \{0,1\}//'; exit 2 ;;
   esac
 fi
