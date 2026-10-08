@@ -19,6 +19,9 @@
       "contracts": {
         "fleet": "fleet-shape.json"
       }
+    },
+    "optimization": {
+      "none": "a terminal emulator run on the user's own machine: no feature-surface route, fleet role or catalogued client action, so nothing to budget"
     }
   },
   "ci": {
