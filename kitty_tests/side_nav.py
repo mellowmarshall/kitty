@@ -26,9 +26,10 @@ def write(path: str, text: str) -> None:
 
 
 def tab(
-    tab_id: int, cwd: str, title: str = '', is_active: bool = False, agent_state: str = '', needs_attention: bool = False, program: str = ''
+    tab_id: int, cwd: str, title: str = '', is_active: bool = False, agent_state: str = '', needs_attention: bool = False, program: str = '',
+    home: str = '',
 ) -> SideNavTabInput:
-    return SideNavTabInput(tab_id, title or f't{tab_id}', is_active, needs_attention, False, agent_state, cwd, program)
+    return SideNavTabInput(tab_id, title or f't{tab_id}', is_active, needs_attention, False, agent_state, cwd, program, home)
 
 
 class TestSideNav(BaseTest):
@@ -224,6 +225,26 @@ class TestSideNav(BaseTest):
             [(r.kind, r.tab_id) for r in rows],
             [('group', 1), ('tab', 1), ('branch', 1), ('tab', 2), ('branch', 2), ('tab', 3), ('blank', 0), ('group', 4), ('tab', 4), ('branch', 4)],
         )
+
+    def test_a_reported_dir_outside_any_repository_keeps_the_tab_in_its_group(self):
+        outside = os.path.join(self.tdir, 'scratch')
+        os.makedirs(outside)
+        repos = {'/src/exp': RepoInfo('/src/exp', 'exp', 'main', False, '/src/exp/.git')}
+        groups = build_groups(
+            (
+                # an agent whose worktree was removed after its merge
+                tab(1, '/data/exp/deletion-reauth', program='claude', home='/src/exp'),
+                # an agent that reports a directory that exists but is no repository
+                tab(2, outside, program='claude', home='/src/exp'),
+                tab(3, '/src/exp', program='vim', home='/src/exp'),
+                # a window that is in no repository at all
+                tab(4, '/tmp', program='vim', home='/tmp'),
+            ),
+            repos.get,
+        )
+        self.ae([(g.name, [t.tab_id for t in g.tabs]) for g in groups], [('exp', [1, 2, 3]), ('other', [4])])
+        self.ae([t.branch for t in groups[0].tabs], ['deletion-reauth (removed)', 'scratch', 'main'])
+        self.ae(groups[1].tabs[0].branch, '')
 
     def test_rows_and_agent_state(self):
         groups = build_groups((tab(1, '/a'), tab(2, '/b')), lambda cwd: RepoInfo(cwd, cwd[1:], 'main'))
