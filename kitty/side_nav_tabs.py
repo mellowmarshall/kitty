@@ -27,7 +27,7 @@ from .fast_data_types import (
 )
 from .side_nav import SideNav
 from .side_nav_arrange import group_order, saved_collapsed, tab_order_moving
-from .side_nav_model import SideNavTabInput, build_groups, group_key, most_urgent_agent_state
+from .side_nav_model import SideNavTabInput, build_groups, group_key, locate, most_urgent_agent_state
 from .side_nav_program import main_program, program_name
 from .side_nav_repo import RepoCache
 from .side_nav_width import lowest_width, resized, saved_width
@@ -203,7 +203,7 @@ class SideNavController:
             # A closing tab has lost its windows before the next tab is chosen,
             # it still belongs to the project it was in.
             return self.known_group_keys.get(tab.id, '')
-        self.known_group_keys[tab.id] = key = group_key(self.repos(self.work_dir(w)))
+        self.known_group_keys[tab.id] = key = group_key(locate(self.work_dir(w), self.cwd(w), self.repos)[0])
         return key
 
     def filter_tab_bar(self, tabs: Iterable['Tab']) -> Iterable['Tab']:
@@ -264,6 +264,7 @@ class SideNavController:
                         most_urgent_agent_state(states),
                         cwd,
                         self.program(w) if w else '',
+                        self.cwd(w) if w else '',
                     )
                 )
                 keys.append((t.id, self.group_key(t)))

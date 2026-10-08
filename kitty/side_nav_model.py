@@ -27,6 +27,7 @@ class SideNavTabInput(NamedTuple):
     agent_state: str
     cwd: str  # where the active window works, which groups the tab
     program: str = ''  # the program in the foreground of the active window, '' for a shell
+    home: str = ''  # the active window's own cwd, which groups the tab when cwd is in no repository
 
 
 class SideNavTab(NamedTuple):
@@ -70,10 +71,14 @@ def build_groups(entries: Iterable[SideNavTabInput], repo_for: Callable[[str], R
     repos: dict[str, RepoInfo | None] = {}
     members: dict[str, list[SideNavTab]] = {}
     repo_cache: dict[str, RepoInfo | None] = {}
+
+    def cached(cwd: str) -> RepoInfo | None:
+        if cwd not in repo_cache:
+            repo_cache[cwd] = repo_for(cwd)
+        return repo_cache[cwd]
+
     for e in entries:
-        if e.cwd not in repo_cache:
-            repo_cache[e.cwd] = repo_for(e.cwd)
-        repo = repo_cache[e.cwd]
+        repo, branch = locate(e.cwd, e.home, cached)
         # All worktrees of a repository share one group; each program shows the
         # branch it works on, since one branch for the group is wrong for some.
         key = group_key(repo)
@@ -81,7 +86,7 @@ def build_groups(entries: Iterable[SideNavTabInput], repo_for: Callable[[str], R
             order.append(key)
             members[key] = []
             repos[key] = repo
-        branch = repo.branch if repo and e.program else ''
+        branch = branch if e.program else ''
         members[key].append(
             SideNavTab(e.tab_id, len(members[key]) + 1, e.title, e.is_active, e.needs_attention, e.has_activity, e.agent_state, e.program, branch)
         )
@@ -95,6 +100,18 @@ def build_groups(entries: Iterable[SideNavTabInput], repo_for: Callable[[str], R
             name = f'{name} · {shorten_path(os.path.dirname(main_checkout(repo)))}'
         groups.append(SideNavGroup(key, name, any(t.is_active for t in tabs), tabs))
     return tuple(groups)
+
+
+def locate(cwd: str, home: str, repo_for: Callable[[str], RepoInfo | None] = find_repo) -> tuple[RepoInfo | None, str]:
+    "The repository that groups a tab, and the branch line its program shows"
+    if (repo := repo_for(cwd)) is not None or not home or home == cwd:
+        return repo, repo.branch if repo else ''
+    # A directory the program reports that is in no repository, most often a
+    # worktree removed after its merge. The program still works on the
+    # repository its window started in, so the tab stays in that group, and
+    # its line says where the program reports it works.
+    where = os.path.basename(cwd.rstrip('/')) or cwd
+    return repo_for(home), where if os.path.exists(cwd) else f'{where} (removed)'
 
 
 def main_checkout(repo: RepoInfo) -> str:
